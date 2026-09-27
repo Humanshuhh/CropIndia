@@ -20,6 +20,7 @@ class LoginResponse(BaseModel):
     role: str = Field(..., description="'admin' or 'farmer'")
     user_id: str = Field(..., description="The document ID for the authenticated user")
     token: Optional[str] = Field(None, description="JWT token for subsequent API calls")
+    name: Optional[str] = Field(None, description="Full name of the user to display on the frontend")
 
 class AdminProfileSchema(BaseModel):
     """

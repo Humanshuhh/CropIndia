@@ -429,72 +429,6 @@ export const Profile: React.FC = () => {
         </div>
       </div>
 
-      {/* Local Storage & Cloud Sync Disclosure Notice */}
-      {syncState === 'synced' ? (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 sm:p-5 flex items-start gap-3 shadow-xs">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-          <div className="space-y-1 text-sm text-stone-700">
-            <p className="font-medium text-emerald-950">
-              Cloud Synchronized (Firestore /db/farmer)
-            </p>
-            <p className="text-xs text-stone-600 leading-relaxed">
-              {syncNotice || 'Your farm profile is saved on this device and synchronized with the Kisan cloud database.'}
-            </p>
-          </div>
-        </div>
-      ) : syncState === 'pending_credentials' ? (
-        <div className="rounded-xl border border-amber-300 bg-amber-50/80 p-4 sm:p-5 flex items-start gap-3 shadow-xs">
-          <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-          <div className="space-y-1 text-sm text-stone-700">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium text-amber-950">
-                Local-First Profile Active
-              </p>
-              <span className="text-[10px] font-semibold bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
-                Cloud Sync Pending Backend Credentials
-              </span>
-            </div>
-            <p className="text-xs text-amber-900/80 leading-relaxed">
-              {syncNotice || (
-                <>
-                  Your profile is saved securely in your browser. The frontend is wired to <code className="font-mono text-[11px] bg-amber-100 px-1 py-0.5 rounded">POST /db/farmer</code>; cloud persistence will activate automatically once Firebase credentials (<code className="font-mono text-[11px]">firebase-key.json</code>) are configured on the backend server.
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-      ) : syncState === 'syncing' ? (
-        <div className="rounded-xl border border-sky-300 bg-sky-50 p-4 sm:p-5 flex items-start gap-3 shadow-xs">
-          <RefreshCw className="w-5 h-5 text-sky-600 animate-spin shrink-0 mt-0.5" />
-          <div className="space-y-1 text-sm text-stone-700">
-            <p className="font-medium text-sky-950">Syncing with Kisan Database...</p>
-            <p className="text-xs text-sky-800 leading-relaxed">Connecting to backend /db/farmer endpoint.</p>
-          </div>
-        </div>
-      ) : syncState === 'sync_error' ? (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:p-5 flex items-start gap-3 shadow-xs">
-          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-1 text-sm text-stone-700">
-            <p className="font-medium text-amber-950">Cloud Sync Notice</p>
-            <p className="text-xs text-amber-900/80 leading-relaxed">
-              {syncNotice || 'Profile saved locally. Cloud synchronization could not be completed.'}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 sm:p-5 flex items-start gap-3 shadow-xs">
-          <Info className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-          <div className="space-y-1 text-sm text-stone-700">
-            <p className="font-medium text-emerald-950">
-              {t('profileSavedNotice')}
-            </p>
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Your farm profile and field coordinates are maintained securely on this browser and connected to the backend database service.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Save Success Alert */}
       {saveSuccess && (
         <div className="rounded-xl border border-green-300 bg-green-50 p-4 flex items-center gap-3 text-green-900 text-sm shadow-xs">
@@ -1022,5 +956,4 @@ export const Profile: React.FC = () => {
     </div>
   );
 };
-
 

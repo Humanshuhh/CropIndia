@@ -52,10 +52,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('kisan_user_id', response.user_id);
       localStorage.setItem('kisan_role', newRole);
       localStorage.setItem('kisan_phone', phone);
-      // We might not get name from login API, but we clear it or leave it
-      localStorage.removeItem('kisan_name');
+      
+      // --- NEW: Safely store the name if the backend provides it ---
+      if (response.name) {
+        localStorage.setItem('kisan_name', response.name);
+      } else {
+        localStorage.removeItem('kisan_name');
+      }
 
-      setUser({ uid: response.user_id, phone });
+      // --- NEW: Pass the name into the active React session ---
+      setUser({ 
+        uid: response.user_id, 
+        phone, 
+        name: response.name 
+      });
+      
       setRole(newRole);
     } catch (err: any) {
       const msg = err?.userMessage || err?.message || 'Login failed. Please check your credentials.';
