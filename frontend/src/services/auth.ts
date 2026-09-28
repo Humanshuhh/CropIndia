@@ -20,6 +20,7 @@ export interface AuthResponse {
   role: string;
   user_id: string;
   token: string;
+  name?: string; // <-- Added this field so AuthContext can read the name without errors
 }
 
 export async function loginApi(payload: LoginPayload): Promise<AuthResponse> {
@@ -29,4 +30,3 @@ export async function loginApi(payload: LoginPayload): Promise<AuthResponse> {
 export async function signupApi(payload: SignupPayload): Promise<AuthResponse> {
   return apiPostJson<SignupPayload, AuthResponse>('/api/v1/auth/signup', payload);
 }
-

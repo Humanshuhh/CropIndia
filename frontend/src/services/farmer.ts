@@ -1,7 +1,7 @@
 import { apiPostJson, apiGetJson } from './apiClient';
 
 /**
- * Backend Farmer schema mapping to /db/farmer.
+ * Backend Farmer schema mapping to /api/v1/farmer.
  */
 export interface FarmerDbRecord {
   farmer_id: string;
@@ -26,16 +26,15 @@ export interface FarmerDbSaveResponse {
 }
 
 /**
- * Save farmer profile to backend Firestore route POST /db/farmer.
+ * Save farmer profile to backend Firestore route POST /api/v1/farmer.
  */
 export async function saveFarmerProfileToDb(farmer: FarmerDbRecord): Promise<FarmerDbSaveResponse> {
-  return await apiPostJson<FarmerDbRecord, FarmerDbSaveResponse>('/db/farmer', farmer);
+  return await apiPostJson<FarmerDbRecord, FarmerDbSaveResponse>('/api/v1/farmer', farmer);
 }
 
 /**
- * Retrieve farmer profile from backend Firestore route GET /db/farmer/{farmer_id}.
+ * Retrieve farmer profile from backend Firestore route GET /api/v1/farmer/{farmer_id}.
  */
 export async function getFarmerProfileFromDb(farmerId: string): Promise<FarmerDbRecord> {
-  return await apiGetJson<FarmerDbRecord>(`/db/farmer/${encodeURIComponent(farmerId)}`);
+  return await apiGetJson<FarmerDbRecord>(`/api/v1/farmer/${encodeURIComponent(farmerId)}`);
 }
-

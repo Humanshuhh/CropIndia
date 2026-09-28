@@ -1,4 +1,4 @@
-# backend/main.py
+﻿# backend/main.py
 
 from typing import Any, Dict
 from contextlib import asynccontextmanager
@@ -21,6 +21,7 @@ from backend.routers.telemetry import router as telemetry_router
 from backend.routers.auth import router as auth_router          # <-- Added auth router
 from backend.routers.admin import router as admin_router        # <-- Added admin router
 from backend.routers.history import router as history_router
+from backend.routers.farmer_profile import router as farmer_profile_router # <-- ADDed to update farmer profile
 
 scheduler = AsyncIOScheduler()
 
@@ -37,7 +38,7 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(
         run_daily_telemetry_scan,
         trigger="interval",
-        seconds=30,  # 30 seconds for active testing; change to hours=12 or 24 for production
+        hours=24,  # <-- Changed from seconds=30 to hours=24
         args=[db_client],
         id="daily_farm_scan",
         replace_existing=True,
@@ -77,6 +78,7 @@ app.include_router(telemetry_router)
 app.include_router(auth_router)           # <-- Mounted auth router
 app.include_router(admin_router)          # <-- Mounted admin router
 app.include_router(history_router)
+app.include_router(farmer_profile_router)
 
 @app.get(
     "/",

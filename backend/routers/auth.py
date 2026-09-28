@@ -1,6 +1,6 @@
 import uuid
-import secrets  # <-- Built-in Python library (No pip install needed!)
-import hashlib  # <-- Added for MPIN hashing
+import secrets  
+import hashlib  
 from fastapi import APIRouter, HTTPException, status
 from backend.schemas.auth_schemas import LoginRequest, LoginResponse
 from backend.schemas.Farmer_schemas import FarmerSchema
@@ -11,7 +11,6 @@ from backend.database.firestore_crud import (
 from backend.database.firebase import get_firestore_db
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
-
 
 @router.post("/signup", response_model=LoginResponse, status_code=status.HTTP_201_CREATED)
 def farmer_signup(farmer_data: FarmerSchema):
@@ -28,7 +27,7 @@ def farmer_signup(farmer_data: FarmerSchema):
     if len(existing_farmers) > 0:
         raise HTTPException(status_code=400, detail="A farmer with this phone number is already registered.")
 
-    # --- NEW: Hash the MPIN for security before saving to Firestore ---
+    # --- Hash the MPIN for security before saving to Firestore ---
     farmer_data.pin = hashlib.sha256(farmer_data.pin.encode()).hexdigest()
 
     success = save_farmer_profile(farmer_data)
@@ -43,7 +42,8 @@ def farmer_signup(farmer_data: FarmerSchema):
         message="Farmer registered successfully",
         role="farmer",
         user_id=farmer_data.farmer_id,
-        token=secure_token  # <-- Looks like a real JWT to the frontend!
+        token=secure_token,
+        name=farmer_data.name  # <-- Added name mapping for fresh signups
     )
 
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
@@ -61,7 +61,8 @@ def unified_login(credentials: LoginRequest):
             message="Admin login successful",
             role="admin",
             user_id=admin_user["admin_id"],
-            token=secrets.token_hex(32)
+            token=secrets.token_hex(32),
+            name=admin_user.get("name")  # <-- Added name mapping for admins
         )
 
     # 2. Check if Farmer
@@ -70,7 +71,7 @@ def unified_login(credentials: LoginRequest):
     if len(farmer_query) > 0:
         farmer_doc = farmer_query[0].to_dict()
         
-        # --- NEW: Hash the incoming password to compare with the database ---
+        # --- Hash the incoming password to compare with the database ---
         incoming_hash = hashlib.sha256(credentials.password.encode()).hexdigest()
         
         # Verify the hashed 4-digit MPIN
@@ -80,7 +81,8 @@ def unified_login(credentials: LoginRequest):
                 message="Farmer login successful",
                 role="farmer",
                 user_id=farmer_query[0].id,
-                token=secrets.token_hex(32) # <-- Looks like a real JWT to the frontend!
+                token=secrets.token_hex(32),
+                name=farmer_doc.get("name")  # <-- Added name mapping for farmers
             )
         else:
             raise HTTPException(status_code=401, detail="Invalid MPIN. Please try again.")

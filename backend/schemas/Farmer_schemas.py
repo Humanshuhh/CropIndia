@@ -1,15 +1,20 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
-# Schema for Farmer Profile
 class FarmerSchema(BaseModel):
     farmer_id: Optional[str] = Field(default=None, description="Unique ID for the farmer")
     name: str
     phone: str
-    pin: str
     state: str
     district: str
     language: str = "en"
+    # --- ADDED: Extended Profile Fields for Database Sync ---
+    village: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    land_area: Optional[float] = None
+    primary_crops: Optional[str] = None
+    agro_climatic_zone: Optional[str] = None
 
 # Schema for Field / Land Details
 class FieldSchema(BaseModel):
