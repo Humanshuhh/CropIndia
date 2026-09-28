@@ -22,6 +22,7 @@ from backend.routers.auth import router as auth_router          # <-- Added auth
 from backend.routers.admin import router as admin_router        # <-- Added admin router
 from backend.routers.history import router as history_router
 from backend.routers.farmer_profile import router as farmer_profile_router # <-- ADDed to update farmer profile
+from backend.routers.weather import router as weather_router  ##  added the weather part
 
 scheduler = AsyncIOScheduler()
 
@@ -79,6 +80,8 @@ app.include_router(auth_router)           # <-- Mounted auth router
 app.include_router(admin_router)          # <-- Mounted admin router
 app.include_router(history_router)
 app.include_router(farmer_profile_router)
+app.include_router(weather_router)
+
 
 @app.get(
     "/",
