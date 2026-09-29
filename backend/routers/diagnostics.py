@@ -1,101 +1,187 @@
 # backend/routers/diagnostics.py
-import asyncio
+
+import io
+import json
 import logging
-import random
+import os
+import time
+from typing import List, Optional
+from PIL import Image, ImageOps
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from google import genai
+from google.genai import types
 
-from backend.ml_engine.diagnostics import plant_diagnostics_engine, preprocess_image
+from backend.database.firestore_crud import save_leaf_diagnostic
 
-logger = logging.getLogger("cropindia.diagnostics")
-router = APIRouter(prefix="/api/v1", tags=["Plant Diagnostics"])
-
-RETRYABLE_EXCEPTIONS: tuple = ()
-try:
-    from google.genai.errors import APIError
-    RETRYABLE_EXCEPTIONS += (APIError,)
-except ImportError:
-    pass
-
-try:
-    from google.api_core.exceptions import InternalServerError, ResourceExhausted, ServiceUnavailable
-    RETRYABLE_EXCEPTIONS += (ResourceExhausted, ServiceUnavailable, InternalServerError)
-except ImportError:
-    pass
+logger = logging.getLogger("kisan_sahayak.diagnostics")
+router = APIRouter(prefix="/api/v1/diagnostics", tags=["Crop Diagnostics"])
 
 
-@router.post("/diagnose")
-async def diagnose_crop_leaf(
-    file: UploadFile = File(...),
-    latitude: float = Form(default=None),
-    longitude: float = Form(default=None),
-    target_language: str = Form(default="hi"),
-):
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
+class EcoRemedy(BaseModel):
+    title: str = Field(description="Name of the natural or biological amendment/bio-pesticide")
+    preparation: str = Field(description="Step-by-step preparation using locally available ingredients or bio-agents")
+    application: str = Field(description="Exact dosage, dilution ratio, and spray timing/frequency")
 
-    raw_bytes = await file.read()
 
-    # Optimize resolution and compress before multimodal inference
-    try:
-        optimized_bytes = preprocess_image(raw_bytes, max_dim=1024, quality=85)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Failed to process image: {str(exc)}")
+class LeafDiagnosisResult(BaseModel):
+    is_plant_detected: bool = Field(description="True if a crop leaf, foliage, or plant tissue is visible")
+    crop_name: Optional[str] = Field(default=None, description="Common name of the crop or plant identified")
+    detected_condition: str = Field(description="Specific disease name, pest damage pattern, or nutrient chlorosis")
+    confidence_level: str = Field(description="Confidence rating: HIGH, MEDIUM, or LOW")
+    underlying_cause: str = Field(description="Pathogen etiology, environmental predisposition, or soil nutrient imbalance")
+    visual_symptoms: List[str] = Field(default_factory=list, description="Observed physical symptoms")
+    eco_friendly_remedies: List[EcoRemedy] = Field(
+        default_factory=list,
+        description="Non-chemical, regenerative, or bio-fungicide treatments"
+    )
+    preventive_cultural_practices: List[str] = Field(
+        default_factory=list,
+        description="Agronomic field hygiene, crop rotation, and watering practices"
+    )
+    spoken_summary: str = Field(
+        description="Concise spoken advisory in plain language suitable for direct TTS voice playback"
+    )
 
-    agro_context = None
-    if latitude is not None and longitude is not None:
-        agro_context = {
-            "zone": "Trans-Gangetic Plains / Eastern Plateau agro-climatic corridor",
-            "organic_carbon": "0.42% (Critically Deficient)",
-            "ph": 6.8,
-            "texture": "Sandy Clay Loam",
-            "ndvi": 0.48,
-            "rainfall_mm": "52mm (Recent humid precipitation)",
-            "ndwi": "Elevated canopy moisture",
-        }
 
-    # Execute diagnosis with non-blocking thread execution and exponential backoff
-    max_retries = 4
-    base_delay = 2.0
+def resolve_api_key() -> Optional[str]:
+    return (
+        os.getenv("GEMINI_API_KEY")
+        or os.getenv("GOOGLE_API_KEY")
+        or os.getenv("GOOGLE_GENAI_API_KEY")
+    )
 
-    for attempt in range(max_retries):
-        try:
-            diagnosis = await asyncio.to_thread(
-                plant_diagnostics_engine.diagnose_leaf_image,
-                image_bytes=optimized_bytes,
-                target_language=target_language,
-                latitude=latitude,
-                longitude=longitude,
-                agro_context=agro_context,
-                mime_type="image/jpeg",
+
+class PlantDiagnosticsEngine:
+    def __init__(self):
+        self.api_key = resolve_api_key()
+        self.client = genai.Client(api_key=self.api_key) if self.api_key else None
+        self.candidate_models = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+        ]
+
+    def diagnose_leaf_image(
+        self,
+        image_bytes: bytes,
+        target_language: str = "hi",
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+        agro_context: Optional[dict] = None,
+        mime_type: str = "image/jpeg"
+    ) -> LeafDiagnosisResult:
+        if not self.client:
+            raise RuntimeError("Gemini API key is not configured. Set GEMINI_API_KEY in your environment.")
+
+        env_context_str = "No geospatial telemetry provided."
+        if agro_context:
+            z = agro_context.get("zone", "Semi-Arid / Tropical")
+            oc = agro_context.get("organic_carbon", "0.45% (Low)")
+            ph = agro_context.get("ph", "7.2")
+            tx = agro_context.get("texture", "Sandy Loam")
+            ndvi = agro_context.get("ndvi", 0.52)
+            rf = agro_context.get("rainfall_mm", "45mm")
+            ndwi = agro_context.get("ndwi", "Moderate")
+
+            env_context_str = (
+                f"- GPS Location: Lat {latitude}, Lon {longitude}\n"
+                f"- Agro-Climatic Zone: {z}\n"
+                f"- Soil Baseline: Organic Carbon = {oc}, pH = {ph}, Texture = {tx}\n"
+                f"- Satellite Telemetry: Mean NDVI = {ndvi}, Recent 14-day Rainfall = {rf}, NDWI = {ndwi}"
             )
-            return diagnosis
+        elif latitude is not None and longitude is not None:
+            env_context_str = f"- GPS Coordinates: Latitude {latitude}, Longitude {longitude}"
 
-        except RETRYABLE_EXCEPTIONS as exc:
-            status_code = getattr(exc, "code", getattr(exc, "status_code", None))
-            msg = str(exc).lower()
+        prompt = (
+            "You are an expert plant pathologist and regenerative agro-ecologist assisting Indian smallholder farmers.\n"
+            f"The farmer's selected language code is: '{target_language}'.\n\n"
+            "--- GEOSPATIAL & ENVIRONMENTAL TELEMETRY (FUSED CONTEXT) ---\n"
+            f"{env_context_str}\n"
+            "----------------------------------------------------------\n\n"
+            "Diagnostic Guidelines:\n"
+            "1. Confirm if a plant or crop leaf is present. If not, set is_plant_detected to false.\n"
+            "2. Identify the crop species and primary condition.\n"
+            "3. CROSS-REFERENCE WITH GEOSPATIAL CONTEXT:\n"
+            "   - If chlorosis matches low Soil Organic Carbon or alkaline pH, diagnose nutrient deficiency.\n"
+            "   - If fungal lesions match elevated rainfall/canopy moisture, explain that environmental humidity triggered it.\n"
+            "4. STRICTLY RECOMMEND BIOLOGICAL & REGENERATIVE REMEDIES:\n"
+            "   - Recommend non-chemical solutions (Neem Seed Kernel Extract, Trichoderma harzianum, fermented sour buttermilk).\n"
+            "   - DO NOT recommend toxic synthetic chemical fungicides or pesticides.\n"
+            "5. SPOKEN VOICE SCRIPT:\n"
+            f"   - Write 'spoken_summary' entirely in the language of '{target_language}' (e.g. conversational Hindi, Telugu, Bengali).\n"
+            "   - Keep it reassuring, jargon-free, and natural for low-literacy voice playback."
+        )
 
-            is_transient = (
-                status_code in (429, 500, 503)
-                or "429" in msg
-                or "resource_exhausted" in msg
-                or "503" in msg
-                or "overloaded" in msg
-            )
-
-            if not is_transient or attempt == max_retries - 1:
-                logger.error(f"Plant diagnosis permanently failed on attempt {attempt + 1}: {exc}")
-                raise HTTPException(
-                    status_code=503,
-                    detail="Plant diagnostic service is currently at peak capacity. Please retry in a moment.",
+        last_error = None
+        for model_name in self.candidate_models:
+            try:
+                response = self.client.models.generate_content(
+                    model=model_name,
+                    contents=[
+                        types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                        prompt,
+                    ],
+                    config=types.GenerateContentConfig(
+                        temperature=0.2,
+                        response_mime_type="application/json",
+                        response_schema=LeafDiagnosisResult,
+                    ),
                 )
+                return LeafDiagnosisResult(**json.loads(response.text.strip()))
+            except Exception as exc:
+                last_error = exc
+                logger.warning(f"Candidate {model_name} failed: {exc}")
+                continue
 
-            delay = (base_delay * (2 ** attempt)) + random.uniform(0.5, 1.5)
-            logger.warning(
-                f"Rate limit hit in plant diagnostics (Attempt {attempt + 1}/{max_retries}). "
-                f"Retrying in {delay:.2f}s..."
-            )
-            await asyncio.sleep(delay)
+        raise RuntimeError(f"All diagnostic candidate models failed. Last error: {last_error}")
 
-        except Exception as exc:
-            logger.error(f"Unexpected diagnostic failure: {exc}")
-            raise HTTPException(status_code=500, detail=str(exc))
+
+def preprocess_image(image_bytes: bytes, max_dim: int = 1024, quality: int = 85) -> bytes:
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        img = ImageOps.exif_transpose(img)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        output_buffer = io.BytesIO()
+        img.save(output_buffer, format="JPEG", quality=quality, optimize=True)
+        return output_buffer.getvalue()
+
+
+plant_diagnostics_engine = PlantDiagnosticsEngine()
+
+
+@router.post("/diagnose", response_model=LeafDiagnosisResult)
+async def diagnose_leaf_endpoint(
+    image: UploadFile = File(...),
+    farmer_id: Optional[str] = Form("default_farmer"),
+    target_language: Optional[str] = Form("hi"),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
+):
+    """Diagnoses a leaf image, returns regenerative remedies, and saves to History."""
+    try:
+        image_content = await image.read()
+        processed_bytes = preprocess_image(image_content)
+
+        # 1. Run inference
+        result = plant_diagnostics_engine.diagnose_leaf_image(
+            image_bytes=processed_bytes,
+            target_language=target_language or "hi",
+            latitude=latitude,
+            longitude=longitude,
+            mime_type="image/jpeg",
+        )
+
+        # 2. Persist to Firestore for History
+        save_leaf_diagnostic(
+            farmer_id=farmer_id or "default_farmer",
+            diagnostic_id=None,
+            diagnosis=result,
+            latitude=latitude,
+            longitude=longitude,
+        )
+
+        return result
+    except Exception as exc:
+        logger.error(f"Leaf diagnosis failed: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
