@@ -8,6 +8,7 @@ class FarmerSchema(BaseModel):
     state: str
     district: str
     language: str = "en"
+    mpin: Optional[str] = Field(default=None, description="4-Digit MPIN for authentication")
     # --- ADDED: Extended Profile Fields for Database Sync ---
     village: Optional[str] = None
     latitude: Optional[float] = None
