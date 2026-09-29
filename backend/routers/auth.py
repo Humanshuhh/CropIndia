@@ -26,9 +26,9 @@ def farmer_signup(farmer_data: FarmerSchema):
     existing_farmers = db.collection("farmers").where("phone", "==", farmer_data.phone).limit(1).get()
     if len(existing_farmers) > 0:
         raise HTTPException(status_code=400, detail="A farmer with this phone number is already registered.")
-
-    # --- Hash the MPIN for security before saving to Firestore ---
-    farmer_data.pin = hashlib.sha256(farmer_data.pin.encode()).hexdigest()
+# --- Hash the MPIN for security before saving to Firestore ---
+    if farmer_data.mpin:
+        farmer_data.mpin = hashlib.sha256(farmer_data.mpin.encode()).hexdigest()
 
     success = save_farmer_profile(farmer_data)
     if not success:
