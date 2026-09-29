@@ -27,15 +27,19 @@ def farmer_signup(farmer_data: FarmerSchema):
     if len(existing_farmers) > 0:
         raise HTTPException(status_code=400, detail="A farmer with this phone number is already registered.")
 
-    # --- Hash the MPIN for security before saving to Firestore ---
-    if farmer_data.mpin:
-        farmer_data.mpin = hashlib.sha256(farmer_data.mpin.encode()).hexdigest()
+    # --- BULLETPROOF HASHING: Grab from either mpin or pin, and save BOTH ---
+    raw_pin = farmer_data.mpin or farmer_data.pin
+    if not raw_pin:
+        raise HTTPException(status_code=400, detail="MPIN is required for signup.")
+
+    hashed_pin = hashlib.sha256(raw_pin.encode()).hexdigest()
+    farmer_data.pin = hashed_pin
+    farmer_data.mpin = hashed_pin
 
     success = save_farmer_profile(farmer_data)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to save farmer profile to database.")
     
-    # Generate a realistic-looking production token
     secure_token = secrets.token_hex(32)
     
     return LoginResponse(
@@ -44,12 +48,12 @@ def farmer_signup(farmer_data: FarmerSchema):
         role="farmer",
         user_id=farmer_data.farmer_id,
         token=secure_token,
-        name=farmer_data.name  # <-- Added name mapping for fresh signups
+        name=farmer_data.name
     )
 
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 def unified_login(credentials: LoginRequest):
-    """Unified login handler supporting MPIN."""
+    """Unified login handler supporting hashed & fallback MPIN match."""
     db = get_firestore_db()
     if not db:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -63,7 +67,7 @@ def unified_login(credentials: LoginRequest):
             role="admin",
             user_id=admin_user["admin_id"],
             token=secrets.token_hex(32),
-            name=admin_user.get("name")  # <-- Added name mapping for admins
+            name=admin_user.get("name")
         )
 
     # 2. Check if Farmer
@@ -72,19 +76,21 @@ def unified_login(credentials: LoginRequest):
     if len(farmer_query) > 0:
         farmer_doc = farmer_query[0].to_dict()
         
-        # --- Hash the incoming password to compare with the database ---
+        # Hash incoming password/MPIN
         incoming_hash = hashlib.sha256(credentials.password.encode()).hexdigest()
         
-        # Verify the hashed 4-digit MPIN (checks both 'pin' and 'mpin' keys safely)
+        # Check both 'pin' and 'mpin' keys from Firestore document
         stored_pin = farmer_doc.get("pin") or farmer_doc.get("mpin")
-        if stored_pin == incoming_hash:
+        
+        # Verify against Hashed Hash or Plain-Text fallback (for older records)
+        if stored_pin and (stored_pin == incoming_hash or stored_pin == credentials.password):
             return LoginResponse(
                 status="success",
                 message="Farmer login successful",
                 role="farmer",
                 user_id=farmer_query[0].id,
                 token=secrets.token_hex(32),
-                name=farmer_doc.get("name")  # <-- Added name mapping for farmers
+                name=farmer_doc.get("name")
             )
         else:
             raise HTTPException(status_code=401, detail="Invalid MPIN. Please try again.")
