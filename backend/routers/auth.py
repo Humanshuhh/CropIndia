@@ -26,7 +26,8 @@ def farmer_signup(farmer_data: FarmerSchema):
     existing_farmers = db.collection("farmers").where("phone", "==", farmer_data.phone).limit(1).get()
     if len(existing_farmers) > 0:
         raise HTTPException(status_code=400, detail="A farmer with this phone number is already registered.")
-# --- Hash the MPIN for security before saving to Firestore ---
+
+    # --- Hash the MPIN for security before saving to Firestore ---
     if farmer_data.mpin:
         farmer_data.mpin = hashlib.sha256(farmer_data.mpin.encode()).hexdigest()
 
@@ -74,8 +75,9 @@ def unified_login(credentials: LoginRequest):
         # --- Hash the incoming password to compare with the database ---
         incoming_hash = hashlib.sha256(credentials.password.encode()).hexdigest()
         
-        # Verify the hashed 4-digit MPIN
-        if farmer_doc.get("pin") == incoming_hash:
+        # Verify the hashed 4-digit MPIN (checks both 'pin' and 'mpin' keys safely)
+        stored_pin = farmer_doc.get("pin") or farmer_doc.get("mpin")
+        if stored_pin == incoming_hash:
             return LoginResponse(
                 status="success",
                 message="Farmer login successful",
