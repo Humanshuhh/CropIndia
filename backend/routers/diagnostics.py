@@ -8,14 +8,16 @@ import time
 from typing import List, Optional
 from PIL import Image, ImageOps
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from google import genai
 from google.genai import types
 
 from backend.database.firestore_crud import save_leaf_diagnostic
 
 logger = logging.getLogger("kisan_sahayak.diagnostics")
-router = APIRouter(prefix="/api/v1/diagnostics", tags=["Crop Diagnostics"])
+
+# Exposes single unified route prefix: /api/v1
+router = APIRouter(prefix="/api/v1", tags=["Crop Diagnostics"])
 
 
 class EcoRemedy(BaseModel):
@@ -56,9 +58,11 @@ class PlantDiagnosticsEngine:
     def __init__(self):
         self.api_key = resolve_api_key()
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
+        # Candidate model tiers with automatic fallback
         self.candidate_models = [
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
+            "gemini-3.8-flash",
+            "gemini-3.7-flash",
+            "gemini-3.6-flash",
         ]
 
     def diagnose_leaf_image(
@@ -113,35 +117,67 @@ class PlantDiagnosticsEngine:
         )
 
         last_error = None
-        for model_name in self.candidate_models:
-            try:
-                response = self.client.models.generate_content(
-                    model=model_name,
-                    contents=[
-                        types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                        prompt,
-                    ],
-                    config=types.GenerateContentConfig(
-                        temperature=0.2,
-                        response_mime_type="application/json",
-                        response_schema=LeafDiagnosisResult,
-                    ),
-                )
-                return LeafDiagnosisResult(**json.loads(response.text.strip()))
-            except Exception as exc:
-                last_error = exc
-                logger.warning(f"Candidate {model_name} failed: {exc}")
-                continue
+        max_attempts_per_model = 3  # Retry each candidate up to 3 times
 
-        raise RuntimeError(f"All diagnostic candidate models failed. Last error: {last_error}")
+        for model_name in self.candidate_models:
+            for attempt in range(1, max_attempts_per_model + 1):
+                try:
+                    response = self.client.models.generate_content(
+                        model=model_name,
+                        contents=[
+                            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                            prompt,
+                        ],
+                        config=types.GenerateContentConfig(
+                            temperature=0.2,
+                            response_mime_type="application/json",
+                            response_schema=LeafDiagnosisResult,
+                            tools=[],
+                        ),
+                    )
+                    return LeafDiagnosisResult(**json.loads(response.text.strip()))
+
+                except Exception as exc:
+                    last_error = exc
+                    err_msg = str(exc).lower()
+
+                    is_transient = (
+                        "503" in err_msg
+                        or "429" in err_msg
+                        or "unavailable" in err_msg
+                        or "high demand" in err_msg
+                        or "resource_exhausted" in err_msg
+                        or "overloaded" in err_msg
+                        or "deadline_exceeded" in err_msg
+                    )
+
+                    if is_transient and attempt < max_attempts_per_model:
+                        wait_seconds = 2 * attempt  # Backoff: 2s, 4s
+                        logger.warning(
+                            f"Model '{model_name}' hit demand/capacity limit (Attempt {attempt}/{max_attempts_per_model}). "
+                            f"Retrying in {wait_seconds}s..."
+                        )
+                        time.sleep(wait_seconds)
+                        continue
+
+                    logger.warning(f"Candidate '{model_name}' failed on attempt {attempt}: {exc}")
+                    break  # Failover to the next candidate model tier
+
+        raise RuntimeError(f"All diagnostic candidate models failed after retries. Last error: {last_error}")
 
 
 def preprocess_image(image_bytes: bytes, max_dim: int = 1024, quality: int = 85) -> bytes:
+    """
+    Resizes image to max_dim x max_dim and compresses to JPEG to minimize token overhead and latency.
+    """
     with Image.open(io.BytesIO(image_bytes)) as img:
         img = ImageOps.exif_transpose(img)
+
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
+
         img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
         output_buffer = io.BytesIO()
         img.save(output_buffer, format="JPEG", quality=quality, optimize=True)
         return output_buffer.getvalue()
@@ -150,38 +186,79 @@ def preprocess_image(image_bytes: bytes, max_dim: int = 1024, quality: int = 85)
 plant_diagnostics_engine = PlantDiagnosticsEngine()
 
 
+# Single endpoint definition: POST /api/v1/diagnose
 @router.post("/diagnose", response_model=LeafDiagnosisResult)
 async def diagnose_leaf_endpoint(
-    image: UploadFile = File(...),
+    image: Optional[UploadFile] = File(None),
+    file: Optional[UploadFile] = File(None),
     farmer_id: Optional[str] = Form("default_farmer"),
     target_language: Optional[str] = Form("hi"),
-    latitude: Optional[float] = Form(None),
-    longitude: Optional[float] = Form(None),
+    latitude: Optional[str] = Form(None),
+    longitude: Optional[str] = Form(None),
 ):
-    """Diagnoses a leaf image, returns regenerative remedies, and saves to History."""
+    """
+    Single diagnostic endpoint accepting multipart/form-data.
+    Accepts the file upload under either 'image' or 'file' keys.
+    Coerces coordinate inputs safely to prevent 422 errors and persists outputs to Firestore history.
+    """
+    upload = image or file
+    if not upload:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Missing file upload. Please provide an image file under the form key 'image' or 'file'."
+        )
+
+    # Convert coordinates safely from strings to float, handling empty strings and NaN
+    parsed_lat: Optional[float] = None
+    parsed_lon: Optional[float] = None
+
+    if latitude and latitude.strip() and latitude.lower() != "nan":
+        try:
+            parsed_lat = float(latitude.strip())
+        except ValueError:
+            parsed_lat = None
+
+    if longitude and longitude.strip() and longitude.lower() != "nan":
+        try:
+            parsed_lon = float(longitude.strip())
+        except ValueError:
+            parsed_lon = None
+
     try:
-        image_content = await image.read()
+        image_content = await upload.read()
+        if not image_content:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded image file is empty."
+            )
+
         processed_bytes = preprocess_image(image_content)
 
-        # 1. Run inference
+        # 1. Execute AI Vision inference with 3-attempt backoff
         result = plant_diagnostics_engine.diagnose_leaf_image(
             image_bytes=processed_bytes,
             target_language=target_language or "hi",
-            latitude=latitude,
-            longitude=longitude,
-            mime_type="image/jpeg",
+            latitude=parsed_lat,
+            longitude=parsed_lon,
+            mime_type=upload.content_type or "image/jpeg",
         )
 
-        # 2. Persist to Firestore for History
+        # 2. Persist diagnosis directly into Firestore history
         save_leaf_diagnostic(
             farmer_id=farmer_id or "default_farmer",
             diagnostic_id=None,
             diagnosis=result,
-            latitude=latitude,
-            longitude=longitude,
+            latitude=parsed_lat,
+            longitude=parsed_lon,
         )
 
         return result
+
+    except HTTPException:
+        raise
     except Exception as exc:
-        logger.error(f"Leaf diagnosis failed: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+        logger.error(f"Leaf diagnosis pipeline failure: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Diagnosis failed: {str(exc)}"
+        )
