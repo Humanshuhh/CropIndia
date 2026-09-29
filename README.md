@@ -132,7 +132,7 @@ Open your terminal and run the following commands to set up the Python backend:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/CropIndia.git
+git clone [https://github.com/Humanshuhh/CropIndia.git](https://github.com/Humanshuhh/CropIndia.git)
 cd CropIndia
 
 # 2. Create and activate a virtual environment
@@ -177,9 +177,23 @@ The backend exposes a RESTful API designed for seamless integration with the Rea
 | `POST` | `/api/v1/soil/regenerative-plan` | **Soil Health Analysis.** Evaluates uploaded soil health card metrics (N-P-K, pH, Organic Carbon) and outputs a customized biological restoration plan. |
 | `POST` | `/api/v1/farmer/query` | **Multimodal Farmer Assistant.** Handles natural text or audio byte queries. Performs dialect matching and returns context-aware agronomic advice. |
 | `POST` | `/api/v1/translate-advisory` | **Advisory Translation.** Translates a cached diagnostic or soil advisory to a new target regional language without re-invoking the heavy vision models. |
+|`POST`|`/api/v1/auth/signup`| **Farmer Onboarding.** Registers phone, name, and securely hashes PIN/MPIN.
+|`POST`|`/api/v1/auth/login`|Secure Unified Login. Validates phone and hashed PIN/MPIN matching.
 
 > 💡 **Interactive Documentation:** Because the backend is built with **FastAPI**, you can explore all endpoints, view request/response schemas, and test the API directly in your browser by visiting the auto-generated Swagger UI at: 
 > **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
+
+## 🌐 Digital Public Good & BRICS Alignment
+Kisan Sahayak is designed to scale across state borders and emerging economies:
+
+1)Interoperable Data Pipeline: BigQuery schema enables cross-border diagnostic telemetry sharing across agricultural ministries.
+
+2)Modular AI Engine: Easily customizable for localized regional crops across BRICS nations.
+
+3)Low-Bandwidth Optimization: Lightweight API responses and cached translation endpoints ensure reliability in poor rural connectivity zones.
+
+📄 License
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
