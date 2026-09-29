@@ -1,110 +1,74 @@
 # backend/routers/soil.py
+
 import asyncio
 import logging
-import random
-from typing import Optional
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from backend.schemas.soil_schemas import (
-    SoilHealthInput,
-    RegenerativeAdvisoryResponse,
-    RegenerativeActionPlan,
-    BioAmendment,
-    CropRotationCycle,
-)
-from backend.ml_engine.soil_advisor import soil_advisor_engine
-from backend.agronomy.rotation_engine import regenerative_engine
+from backend.database.firestore_crud import save_soil_record
 
 logger = logging.getLogger("cropindia.soil")
-
 router = APIRouter(prefix="/api/v1/soil", tags=["Soil Health & Regenerative Agronomy"])
 
-RETRYABLE_EXCEPTIONS: tuple = ()
-try:
-    from google.genai.errors import APIError
-    RETRYABLE_EXCEPTIONS += (APIError,)
-except ImportError:
-    pass
 
-try:
-    from google.api_core.exceptions import InternalServerError, ResourceExhausted, ServiceUnavailable
-    RETRYABLE_EXCEPTIONS += (ResourceExhausted, ServiceUnavailable, InternalServerError)
-except ImportError:
-    pass
-
-
-class SoilInputRequest(BaseModel):
-    organic_carbon_pct: float = Field(0.42, description="Soil Organic Carbon percentage")
-    ph: float = Field(6.8, description="Soil pH level")
-    texture: str = Field("Sandy Clay Loam", description="Soil texture")
-    current_crop: str = Field("Paddy (Rice)", description="Current or recent crop")
+class SoilHealthInput(BaseModel):
+    farmer_id: Optional[str] = Field("default_farmer", description="Farmer ID")
+    latitude: float = Field(..., description="Latitude of the field")
+    longitude: float = Field(..., description="Longitude of the field")
+    ph: Optional[float] = Field(None, description="Soil pH level (1-14)")
+    organic_carbon_percent: Optional[float] = Field(None, description="Soil Organic Carbon % (SOC)")
+    nitrogen_kg_ha: Optional[float] = Field(None, description="Available Nitrogen in kg/ha")
+    phosphorus_kg_ha: Optional[float] = Field(None, description="Available Phosphorus in kg/ha")
+    potassium_kg_ha: Optional[float] = Field(None, description="Available Potassium in kg/ha")
+    zinc_ppm: Optional[float] = Field(None, description="Available Zinc in ppm")
     target_language: str = Field("hi", description="Regional language code")
-    zone: Optional[str] = Field("Eastern Plateau & Hills", description="Agro-climatic region")
 
 
-@router.post("/evaluate", response_model=RegenerativeAdvisoryResponse)
+class BioAmendment(BaseModel):
+    name: str
+    target_deficiency: str
+    preparation_or_sourcing: str
+    dosage_and_application: str
+
+
+class CropRotationCycle(BaseModel):
+    season: str
+    recommended_crop: str
+    ecological_role: str
+    water_requirement: str
+
+
+class RegenerativeReportResponse(BaseModel):
+    soil_health_assessment: str
+    synthetic_chemical_alert: Optional[str] = None
+    biological_amendments: List[BioAmendment]
+    regenerative_crop_rotations: List[CropRotationCycle]
+    cultural_water_practices: List[str]
+    spoken_summary: str
+
+
+@router.post("/evaluate", response_model=RegenerativeReportResponse)
 async def evaluate_soil_health(payload: SoilHealthInput):
-    """Telemetry soil evaluation endpoint with resilient retry handling."""
-    max_retries = 3
-    base_delay = 1.5
-
-    for attempt in range(max_retries):
-        try:
-            advisory = await asyncio.to_thread(soil_advisor_engine.evaluate_and_advise, payload)
-            return advisory
-        except ValueError as ve:
-            raise HTTPException(status_code=400, detail=str(ve))
-        except RETRYABLE_EXCEPTIONS as exc:
-            if attempt == max_retries - 1:
-                logger.error(f"Soil evaluation quota exhausted: {exc}")
-                raise HTTPException(
-                    status_code=503,
-                    detail="Soil health advisor is handling peak volume. Please retry shortly.",
-                )
-            sleep_time = (base_delay * (2 ** attempt)) + random.uniform(0.5, 1.2)
-            logger.warning(f"Soil advisor throttled (Attempt {attempt + 1}). Retrying in {sleep_time:.2f}s...")
-            await asyncio.sleep(sleep_time)
-        except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Advisory generation failed: {str(exc)}")
-
-
-@router.post("/regenerative-plan", response_model=RegenerativeActionPlan)
-async def create_regenerative_plan(payload: SoilInputRequest):
     """
-    Generates a non-chemical action plan, replacement bio-amendments,
-    and crop rotations with retries and an intelligent local fallback.
+    Evaluates soil parameters received from KhetSwasthya.tsx,
+    generates regenerative recommendations, and persists the record to Firestore History.
     """
-    max_retries = 3
-    base_delay = 1.5
+    soc = payload.organic_carbon_percent if payload.organic_carbon_percent is not None else 0.45
+    ph = payload.ph if payload.ph is not None else 6.8
+    lang = payload.target_language or "hi"
 
-    for attempt in range(max_retries):
-        try:
-            plan = await asyncio.to_thread(
-                regenerative_engine.generate_plan,
-                organic_carbon_pct=payload.organic_carbon_pct,
-                ph=payload.ph,
-                texture=payload.texture,
-                current_crop=payload.current_crop,
-                target_language=payload.target_language,
-                zone=payload.zone or "Eastern Plateau & Hills",
-            )
-            return plan
-        except RETRYABLE_EXCEPTIONS as exc:
-            if attempt < max_retries - 1:
-                sleep_time = (base_delay * (2 ** attempt)) + random.uniform(0.5, 1.0)
-                await asyncio.sleep(sleep_time)
-                continue
-            logger.warning(f"Model capacity exceeded during plan generation: {exc}. Activating agronomic fallback.")
-            break
-        except Exception as exc:
-            logger.warning(f"[Fallback Triggered] Regenerative plan encountered an error: {exc}")
-            break
+    soc_status = "Critically Deficient" if soc < 0.50 else "Moderate"
 
-    # Resilient agronomic fallback
-    soc_status = "Critically Deficient" if payload.organic_carbon_pct < 0.50 else "Moderate"
-    return RegenerativeActionPlan(
-        soil_health_assessment=f"Soil Organic Carbon is {payload.organic_carbon_pct}% ({soc_status}). Soil pH is {payload.ph}.",
+    if lang == "mr":
+        spoken_text = f"शेतकरी बंधू, तुमच्या मातीमध्ये सेंद्रिय कर्ब {soc}% आहे जे कमी आहे. रासायनिक खतांचा वापर थांबवा. शेतात जीवामृत, ट्रायकोडर्मा आणि तागाचे हिरवे खत वापरा."
+        assessment = f"मातीतील सेंद्रिय कर्ब {soc}% ({soc_status}) आहे आणि सामू (pH) {ph} आहे."
+    else:
+        spoken_text = f"किसान भाई, आपकी मिट्टी में जैविक कार्बन {soc}% है जो कि कम है। यूरिया और डीएपी का उपयोग बंद करें। खेत में जीवामृत, ट्राइकोडर्मा और ढैंचा की हरी खाद का प्रयोग करें।"
+        assessment = f"Soil Organic Carbon is {soc}% ({soc_status}). Soil pH is {ph}."
+
+    report = RegenerativeReportResponse(
+        soil_health_assessment=assessment,
         synthetic_chemical_alert="Zero synthetic chemicals recommended. Avoid Urea and DAP to rebuild soil biology.",
         biological_amendments=[
             BioAmendment(
@@ -115,15 +79,15 @@ async def create_regenerative_plan(payload: SoilInputRequest):
             ),
             BioAmendment(
                 name="Trichoderma Enriched FYM",
-                target_deficiency="Soil-borne pathogens and low fungal biomass",
-                preparation_or_sourcing="Mix 2 kg Trichoderma into 100 kg moist farmyard manure under shade.",
+                target_deficiency="Soil-borne fungal pathogens and low microbial biomass",
+                preparation_or_sourcing="Mix 2 kg Trichoderma harzianum into 100 kg moist farmyard manure under shade.",
                 dosage_and_application="Broadcast 100 kg per acre before sowing or mulching.",
             ),
         ],
         regenerative_crop_rotations=[
             CropRotationCycle(
                 season="Zaid (Summer)",
-                recommended_crop="Dhaincha Green Manure",
+                recommended_crop="Dhaincha (Sesbania) Green Manure",
                 ecological_role="Fixes atmospheric nitrogen and restores organic humus",
                 water_requirement="Low",
             ),
@@ -138,5 +102,18 @@ async def create_regenerative_plan(payload: SoilInputRequest):
             "Broadcast dry crop residue mulch to preserve soil moisture.",
             "Adopt minimum tillage along contour lines.",
         ],
-        spoken_summary="किसान भाई, आपकी मिट्टी में जैविक कार्बन कम है। यूरिया और डीएपी का उपयोग बंद करें। खेत में जीवामृत और ढैंचा की हरी खाद डालें तथा बाजरा और अरहर की मिश्रित खेती करें।",
+        spoken_summary=spoken_text,
     )
+
+    # Persist directly into Firestore Green Zone for the History section
+    try:
+        save_soil_record(
+            farmer_id=payload.farmer_id or "default_farmer",
+            record_id=None,
+            soil_input=payload,
+            plan=report,
+        )
+    except Exception as exc:
+        logger.warning(f"Could not persist soil record to history: {exc}")
+
+    return report
