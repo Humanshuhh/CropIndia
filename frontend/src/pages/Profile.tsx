@@ -437,6 +437,28 @@ export const Profile: React.FC = () => {
         </div>
       )}
 
+      {/* Cloud Sync Status */}
+      {syncState !== 'idle' && (
+        <div
+          className={`rounded-xl border p-4 flex items-center gap-3 text-sm shadow-xs ${
+            syncState === 'syncing'
+              ? 'border-blue-200 bg-blue-50 text-blue-900'
+              : syncState === 'synced'
+                ? 'border-green-300 bg-green-50 text-green-900'
+                : 'border-amber-300 bg-amber-50 text-amber-900'
+          }`}
+        >
+          <span>
+            {syncState === 'syncing'
+              ? 'Syncing to cloud…'
+              : syncNotice ??
+                (syncState === 'synced'
+                  ? 'Profile synced to cloud.'
+                  : '')}
+          </span>
+        </div>
+      )}
+
       {/* General error if any */}
       {validationErrors.general && (
         <div className="rounded-xl border border-red-300 bg-red-50 p-4 flex items-center gap-3 text-red-900 text-sm">

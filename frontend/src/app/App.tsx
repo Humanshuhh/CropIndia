@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
+import { AdminLogin } from '../pages/AdminLogin';
 import { LanguageProvider } from '../context/LanguageContext';
 import { VoiceProvider } from '../context/VoiceContext';
 import { Navbar } from '../components/layout/Navbar';
@@ -55,8 +56,9 @@ export const App: React.FC = () => {
             <ResultCacheProvider>
               <div className="flex flex-col min-h-screen bg-stone-50 text-stone-900">
                 <Navbar />
-                <main className="flex-1 pb-20 lg:pb-0">
+                <main className="flex flex-1 flex-col min-h-0 pb-20 lg:pb-0">
                   <Routes>
+                    <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/" element={<HomeOrWelcome />} />
                     <Route path="/welcome" element={<Welcome />} />
                     <Route path="/khet-swasthya" element={<KhetSwasthya />} />

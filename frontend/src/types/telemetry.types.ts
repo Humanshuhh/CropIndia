@@ -46,3 +46,35 @@ export interface AgroClimaticZonesResponse {
   type: string;
   features: any[]; // Using any[] for geojson features to keep it minimal and flexible
 }
+
+export interface WeatherCurrentConditions {
+  temperature_c: number | null;
+  humidity_pct: number | null;
+  precipitation_mm: number;
+  wind_speed_kmh: number;
+  weather_code: number | null;
+  next_12h_rain_chance_pct: number;
+  spray_advisory: 'SAFE_TO_SPRAY' | 'DO_NOT_SPRAY';
+}
+
+export interface WeatherDailyForecast {
+  date: string;
+  temp_max_c: number | null;
+  temp_min_c: number | null;
+  rain_chance_max_pct: number | null;
+  total_precipitation_mm: number | null;
+  weather_code: number | null;
+}
+
+export interface WeatherForecastData {
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  current: WeatherCurrentConditions;
+  daily_forecast: WeatherDailyForecast[];
+}
+
+export interface WeatherForecastResponse {
+  status: 'success';
+  data: WeatherForecastData;
+}
