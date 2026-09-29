@@ -309,8 +309,8 @@ accessDenied: "Access denied",
   assistantSpokenWordsNote: 'உங்கள் வார்த்தைகள் மதிப்பாய்வுக்காக இங்கே தோன்றும்.',
   assistantDoneBtn: 'முடிந்தது',
   assistantReadyToSend: 'புகைப்படம் இணைக்கப்பட்டது (அனுப்ப தயார்)',
-  assistantPlaceholderListening: 'குரலைக் கேட்கிறது... நீங்கள் பேசும் வார்த்தைகள் இங்கே தோன்றும்...',
-  assistantPlaceholderDefault: 'இந்தி, ஆங்கிலம், தமிழ், தெலுங்கு, பெங்காலி, மராத்தியில் கேளுங்கள்... (புதிய வரிக்கு Shift+Enter)',
+  assistantPlaceholderListening: 'குரலைக் கேட்கிறது...',
+  assistantPlaceholderDefault: 'உங்கள் மொழியில் கேளுங்கள்... (புதிய வரி: Shift+Enter)',
   assistantSendQueryBtn: 'கேள்வியை அனுப்பவும்',
   assistantConsultingEngine: 'கிசான் வேளாண்-நோயியல் இயந்திரத்துடன் ஆலோசிக்கிறது...',
 
@@ -349,6 +349,12 @@ accessDenied: "Access denied",
 
   telemetryEarlyWarningTitle: 'வயல் அபாய எச்சரிக்கைகள்',
   telemetryEarlyWarningDesc: 'உங்கள் வயல் இடத்திற்கான வானிலை தரவு மற்றும் விவசாய அசாதாரண கண்டறிதல் அடிப்படையில்.',
+  weatherStatusTitle: 'வானிலை நிலை',
+  weatherStatusLoading: 'தேர்ந்தெடுத்த இடத்திற்கான வானிலை முன்னறிவிப்பு பெறப்படுகிறது...',
+  weatherStatusError: 'வானிலை முன்னறிவிப்பை ஏற்ற முடியவில்லை. இடநிலைக் குறியீடுகளைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.',
+  weatherStatusIdle: 'GPS மூலம் உங்கள் இருப்பிடத்தைக் கண்டறியவும் அல்லது இடநிலைக் குறியீடுகளை உள்ளிட்டு Fetch Weather என்பதை அழுத்தவும். ஊக மதிப்புகள் பயன்படுத்தப்படவில்லை.',
+  weatherFetchButton: 'வானிலையைப் பார்க்கவும்',
+  weatherFetchLoading: 'பெறப்படுகிறது...',
 };
 
 

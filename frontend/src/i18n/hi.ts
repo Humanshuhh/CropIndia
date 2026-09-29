@@ -318,8 +318,8 @@ accessDenied: "Access denied",
   assistantSpokenWordsNote: 'आपके बोले गए शब्द यहां बॉक्स में दिखाई देंगे।',
   assistantDoneBtn: 'पूर्ण',
   assistantReadyToSend: 'फोटो जोड़ी गई (भेजने के लिए तैयार)',
-  assistantPlaceholderListening: 'आवाज़ सुनी जा रही है... आपके शब्द यहां दिखेंगे...',
-  assistantPlaceholderDefault: 'हिंदी, अंग्रेज़ी, मराठी, बंगाली, तमिल, तेलुगु में पूछें... (नई लाइन के लिए Shift+Enter दबाएं)',
+  assistantPlaceholderListening: 'सुन रहा है...',
+  assistantPlaceholderDefault: 'अपनी भाषा में पूछें...',
   assistantSendQueryBtn: 'सवाल पूछें',
   assistantConsultingEngine: 'किसान कृषि-रोग इंजन से परामर्श किया जा रहा है...',
 
@@ -358,5 +358,12 @@ accessDenied: "Access denied",
 
   telemetryEarlyWarningTitle: 'खेत जोखिम सूचनाएं',
   telemetryEarlyWarningDesc: 'आपके खेत के स्थान के लिए मौसम डेटा और कृषि असामान्यता पहचान पर आधारित।',
+
+  weatherStatusTitle: 'मौसम की स्थिति',
+  weatherStatusLoading: 'चुने गए स्थान का मौसम पूर्वानुमान प्राप्त किया जा रहा है...',
+  weatherStatusError: 'मौसम पूर्वानुमान लोड नहीं हो सका। निर्देशांक जाँचें या दोबारा प्रयास करें।',
+  weatherStatusIdle: 'GPS से अपना स्थान पता करें या निर्देशांक दर्ज करके Fetch Weather दबाएँ। कोई अनुमानित मान उपयोग नहीं किया जाता।',
+  weatherFetchButton: 'मौसम देखें',
+  weatherFetchLoading: 'प्राप्त हो रहा है...',
 };
 

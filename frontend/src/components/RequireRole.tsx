@@ -17,8 +17,13 @@ export const RequireRole: React.FC<RequireRoleProps> = ({ requiredRole, children
   }
 
   if (!user) {
-    // Unauthenticated users go to login
-    return <Navigate to="/login" replace />;
+    // Redirect users to the login page for their required role
+    return (
+      <Navigate
+        to={requiredRole === 'admin' ? '/admin/login' : '/login'}
+        replace
+      />
+    );
   }
 
   if (role !== requiredRole) {

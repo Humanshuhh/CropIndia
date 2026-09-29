@@ -317,8 +317,8 @@ accessDenied: "Access denied",
   assistantSpokenWordsNote: 'Spoken words will appear in the text box for your review.',
   assistantDoneBtn: 'Done',
   assistantReadyToSend: 'Image Attached (Ready to Send)',
-  assistantPlaceholderListening: 'Listening to speech... Spoken words will appear here...',
-  assistantPlaceholderDefault: 'Ask in Hindi, English, Marathi, Bengali, Tamil, Telugu... (Shift+Enter for newline)',
+  assistantPlaceholderListening: 'Listening...',
+  assistantPlaceholderDefault: 'Ask in your language...',
   assistantSendQueryBtn: 'Send Query',
   assistantConsultingEngine: 'Consulting Kisan Agro-Pathology Engine...',
 
@@ -357,5 +357,12 @@ accessDenied: "Access denied",
 
   telemetryEarlyWarningTitle: 'Field Risk Alerts',
   telemetryEarlyWarningDesc: 'Based on weather data and agronomic anomaly detection for your farm location.',
+
+  weatherStatusTitle: 'Weather Status',
+  weatherStatusLoading: 'Fetching the forecast for the selected location...',
+  weatherStatusError: 'The forecast could not be loaded. Check the coordinates or try again.',
+  weatherStatusIdle: 'Detect your location using GPS or enter coordinates and select Fetch Weather. No placeholder values are used.',
+  weatherFetchButton: 'Fetch Weather',
+  weatherFetchLoading: 'Fetching...',
 };
 

@@ -8,11 +8,12 @@
  * - Alerts from /early-warning/alerts are real anomaly-detection outputs.
  * - No fake values are ever injected.
  */
-import { normalizeApiError } from './apiClient';
+import { apiGetJson, normalizeApiError } from './apiClient';
 import type {
   SentinelSurfaceMapResponse,
   EarlyWarningAlertsResponse,
   AgroClimaticZonesResponse,
+  WeatherForecastResponse,
 } from '../types/telemetry.types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -81,5 +82,19 @@ export async function fetchEarlyWarningAlerts(
 export async function fetchAgroClimaticZones(): Promise<AgroClimaticZonesResponse> {
   return telemetryGet<AgroClimaticZonesResponse>(
     '/api/v1/telemetry/agro-climatic-zones'
+  );
+}
+
+export async function fetchWeatherForecast(
+  lat: number,
+  lon: number
+): Promise<WeatherForecastResponse> {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+  });
+
+  return apiGetJson<WeatherForecastResponse>(
+    `/api/v1/weather/forecast?${params}`
   );
 }

@@ -309,8 +309,8 @@ accessDenied: "Access denied",
   assistantSpokenWordsNote: 'तुमचे शब्द तपासणीसाठी मजकूर पेटीत दिसतील.',
   assistantDoneBtn: 'पूर्ण',
   assistantReadyToSend: 'फोटो जोडला (पाठवण्यासाठी तयार)',
-  assistantPlaceholderListening: 'आवाज ऐकला जात आहे... तुमचे शब्द येथे दिसतील...',
-  assistantPlaceholderDefault: 'हिंदी, इंग्रजी, मराठी, बंगाली, तमिळ, तेलुगूमध्ये विचारा... (नवीन ओळीसाठी Shift+Enter)',
+  assistantPlaceholderListening: 'ऐकत आहे...',
+  assistantPlaceholderDefault: 'तुमच्या भाषेत विचारा... (नवीन ओळ: Shift+Enter)',
   assistantSendQueryBtn: 'प्रश्न पाठवा',
   assistantConsultingEngine: 'किसान कृषी-रोग निदान यंत्रणेशी सल्लामसलत सुरू आहे...',
 
@@ -349,6 +349,12 @@ accessDenied: "Access denied",
 
   telemetryEarlyWarningTitle: 'शेत धोक्याच्या सूचना',
   telemetryEarlyWarningDesc: 'आपल्या शेताच्या स्थानासाठी हवामान डेटा आणि कृषी विकृती ओळखण्यावर आधारित.',
+  weatherStatusTitle: 'हवामान स्थिती',
+  weatherStatusLoading: 'निवडलेल्या ठिकाणाचा हवामान अंदाज मिळवला जात आहे...',
+  weatherStatusError: 'हवामान अंदाज लोड करता आला नाही. निर्देशांक तपासा किंवा पुन्हा प्रयत्न करा.',
+  weatherStatusIdle: 'GPS वापरून तुमचे स्थान शोधा किंवा निर्देशांक भरून Fetch Weather दाबा. अंदाजे मूल्ये वापरली जात नाहीत.',
+  weatherFetchButton: 'हवामान पाहा',
+  weatherFetchLoading: 'मिळवत आहे...',
 };
 
 

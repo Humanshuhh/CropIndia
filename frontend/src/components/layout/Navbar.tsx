@@ -38,7 +38,14 @@ export const Navbar: React.FC = () => {
     setMobileMenuOpen(false);
   };
 
-  const navLinks = [
+  type NavLinkItem = {
+  to: string;
+  label: string;
+  icon: React.ReactNode;
+  badge?: string;
+  };
+
+  const navLinks: NavLinkItem[] = [
     { to: '/', label: t('navHome'), icon: <Sprout className="w-4 h-4" /> },
     { to: '/khet-swasthya', label: t('navKhetSwasthya'), icon: <Layers className="w-4 h-4" /> },
     { to: '/fasal-rog-pehchan', label: t('navFasalRog'), icon: <Activity className="w-4 h-4" /> },
@@ -74,9 +81,6 @@ export const Navbar: React.FC = () => {
             <div className="flex flex-col">
               <span className="font-bold text-lg md:text-xl tracking-tight text-stone-50 leading-tight">
                 {t('appTitle')}
-              </span>
-              <span className="text-[11px] text-emerald-400 font-medium hidden sm:inline leading-none">
-                {t('appTagline')}
               </span>
             </div>
           </Link>

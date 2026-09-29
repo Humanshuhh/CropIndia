@@ -374,5 +374,11 @@ accessDenied: string;
   telemetryPipelineSuccessSuffix: string;
   telemetryEarlyWarningTitle: string;
   telemetryEarlyWarningDesc: string;
+  weatherStatusTitle: string;
+  weatherStatusLoading: string;
+  weatherStatusError: string;
+  weatherStatusIdle: string;
+  weatherFetchButton: string;
+  weatherFetchLoading: string;
 }
 

@@ -15,10 +15,11 @@ import {
   CloudRain,
   Wind,
   Shield,
-  Clock,
   Droplets,
   Volume2,
 } from 'lucide-react';
+import { fetchWeatherForecast } from '../services/telemetry';
+import type { WeatherForecastData } from '../types/telemetry.types';
 import { useLanguage } from '../context/LanguageContext';
 import { useVoice } from '../context/VoiceContext';
 import { evaluateSoil } from '../services/soil';
@@ -49,6 +50,12 @@ export const KhetSwasthya: React.FC = () => {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
 
+  const [weatherData, setWeatherData] =
+  useState<WeatherForecastData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const currentWeather = weatherData?.current;
+
   const isSubmitting = soilCache.status === 'loading';
   const error = soilCache.error;
 
@@ -58,6 +65,59 @@ export const KhetSwasthya: React.FC = () => {
   const setError = (val: NormalizedError | null) => setSoilCacheProp('error', val);
   const setStatus = (val: 'idle' | 'loading' | 'success' | 'error') => setSoilCacheProp('status', val);
 
+  const loadWeather = async (lat: number, lon: number) => {
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon) ||
+      lat < -90 ||
+      lat > 90 ||
+      lon < -180 ||
+      lon > 180
+    ) {
+      setWeatherData(null);
+      setWeatherError('Please enter valid latitude and longitude values.');
+      return;
+    }
+
+    setWeatherLoading(true);
+    setWeatherError(null);
+    setWeatherData(null);
+
+    try {
+      const response = await fetchWeatherForecast(lat, lon);
+
+      if (response.status !== 'success' || !response.data) {
+        throw new Error('Weather forecast is unavailable for this location.');
+      }
+
+      setWeatherData(response.data);
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'message' in err &&
+        typeof err.message === 'string'
+          ? err.message
+          : 'Weather forecast is currently unavailable. Please try again.';
+
+      setWeatherError(message);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+const handleFetchWeather = () => {
+  const latitude = coords.latitude.trim();
+  const longitude = coords.longitude.trim();
+
+  if (!latitude || !longitude) {
+    setWeatherError('Please enter both latitude and longitude.');
+    setWeatherData(null);
+    return;
+  }
+
+  void loadWeather(Number(latitude), Number(longitude));
+};
   // GPS Device Location Handler
   const handleDetectLocation = () => {
     setGpsError(null);
@@ -69,11 +129,17 @@ export const KhetSwasthya: React.FC = () => {
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        const latitude = pos.coords.latitude;
+        const longitude = pos.coords.longitude;
+
         setCoords({
-          latitude: pos.coords.latitude.toFixed(4),
-          longitude: pos.coords.longitude.toFixed(4),
+          latitude: latitude.toFixed(4),
+          longitude: longitude.toFixed(4),
         });
+
         setGpsLoading(false);
+
+        void loadWeather(latitude, longitude);
       },
       (err) => {
         setGpsLoading(false);
@@ -476,72 +542,182 @@ export const KhetSwasthya: React.FC = () => {
                   <h3 className="font-bold text-stone-900 text-base">
                     {t('weatherSectionTitle')}
                   </h3>
-                  <span className="text-xs text-stone-500">Target Feed: IMD / Agrometeorological Grid API</span>
+                  <span className="text-xs text-stone-500">
+                    Target Feed: IMD / Agrometeorological Grid API
+                  </span>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-full">
-                <Clock className="w-3 h-3" />
-                Feed Pending Integration
-              </span>
+
+              {/* Fetch Weather button */}
+              <button
+                type="button"
+                onClick={handleFetchWeather}
+                disabled={weatherLoading}
+                className="inline-flex shrink-0 whitespace-nowrap items-center justify-center rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {weatherLoading
+                  ? t('weatherFetchLoading')
+                  : t('weatherFetchButton')}
+              </button>
             </div>
 
             {/* Real 7-Day Forecast Grid Chrome (Zero placeholder/guessed numbers) */}
+            {weatherError && (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
+                {weatherError}
+              </div>
+            )}
+
             <div className="space-y-2 pt-1">
-              <span className="text-xs font-semibold text-stone-600 block">7-Day Forecast Slots</span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                {['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'].map((day, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-xl border border-dashed border-stone-300 bg-stone-50/80 p-2 text-center space-y-1"
-                  >
-                    <span className="text-[11px] font-bold text-stone-700 block">{day}</span>
-                    <CloudSun className="w-4 h-4 text-stone-400 mx-auto" />
-                    <span className="inline-block text-[10px] text-amber-800 font-medium bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
-                      Pending
-                    </span>
-                  </div>
-                ))}
+              <span className="text-xs font-semibold text-stone-600 block">
+                7-Day Forecast
+              </span>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {weatherData?.daily_forecast?.length ? (
+                  weatherData.daily_forecast.slice(0, 7).map((day, idx) => {
+                    const date = new Date(`${day.date}T00:00:00`);
+
+                    const dayLabel = Number.isNaN(date.getTime())
+                      ? day.date
+                      : date.toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        });
+
+                    return (
+                      <div
+                        key={day.date || idx}
+                        className="rounded-xl border border-stone-300 bg-stone-50/80 p-2 text-center space-y-2"
+                      >
+                        <span className="text-[11px] font-bold text-stone-700 block">
+                          {dayLabel}
+                        </span>
+
+                        <div className="whitespace-nowrap text-sm font-semibold text-stone-800">
+                          {day.temp_max_c == null ? '—' : `${day.temp_max_c}°`}
+                          {' / '}
+                          {day.temp_min_c == null ? '—' : `${day.temp_min_c}°`}
+                        </div>
+
+                        <div className="text-[10px] text-stone-600">
+                          Rain:{' '}
+                          {day.rain_chance_max_pct == null
+                            ? '—'
+                            : `${day.rain_chance_max_pct}%`}
+                        </div>
+
+                        <div className="text-[10px] text-stone-600">
+                          {day.total_precipitation_mm == null
+                            ? '—'
+                            : `${day.total_precipitation_mm} mm`}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  Array.from({ length: 7 }, (_, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-xl border border-dashed border-stone-300 bg-stone-50/80 p-2 text-center space-y-2"
+                    >
+                      <span className="text-[11px] font-bold text-stone-700 block">
+                        Day {idx + 1}
+                      </span>
+                      <CloudSun className="w-4 h-4 text-stone-400 mx-auto" />
+                      <span className="text-[10px] text-stone-500">
+                        —
+                      </span>
+                    </div>
+                  ))
+                )}{/* Spray Advisory - 8th card */}
+                <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 text-center space-y-2">
+                  <span className="text-[11px] font-bold text-stone-700 block">
+                    Spray Advisory
+                  </span>
+
+                  <Shield className="w-4 h-4 text-sky-700 mx-auto" />
+
+                  <span className="text-xs font-semibold text-stone-800 block">
+                    {currentWeather?.spray_advisory === 'SAFE_TO_SPRAY'
+                      ? 'Safe to spray'
+                      : currentWeather?.spray_advisory === 'DO_NOT_SPRAY'
+                        ? 'Avoid spraying'
+                        : '—'}
+                  </span>
+                </div>
               </div>
             </div>
-
-            {/* Metrics Grid: Temperature, Rainfall Probability, Humidity, Wind */}
+            {/* Metrics Grid: Live Weather */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-stone-100">
               <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-center space-y-1">
                 <Thermometer className="w-4 h-4 text-stone-500 mx-auto" />
-                <span className="text-[11px] font-semibold text-stone-700 block">Temperature</span>
-                <span className="inline-block text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                  Pending Integration
+                <span className="text-[11px] font-semibold text-stone-700 block">
+                  Temperature
+                </span>
+                <span className="text-sm font-bold text-stone-900 block">
+                  {currentWeather?.temperature_c == null
+                    ? '—'
+                    : `${currentWeather.temperature_c} °C`}
                 </span>
               </div>
+
               <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-center space-y-1">
                 <CloudRain className="w-4 h-4 text-stone-500 mx-auto" />
-                <span className="text-[11px] font-semibold text-stone-700 block">Rain Probability</span>
-                <span className="inline-block text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                  Pending Integration
+                <span className="text-[11px] font-semibold text-stone-700 block">
+                  Rain Probability
+                </span>
+                <span className="text-sm font-bold text-stone-900 block">
+                  {currentWeather?.next_12h_rain_chance_pct == null
+                    ? '—'
+                    : `${currentWeather.next_12h_rain_chance_pct}%`}
                 </span>
               </div>
+
               <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-center space-y-1">
                 <Droplets className="w-4 h-4 text-stone-500 mx-auto" />
-                <span className="text-[11px] font-semibold text-stone-700 block">Relative Humidity</span>
-                <span className="inline-block text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                  Pending Integration
+                <span className="text-[11px] font-semibold text-stone-700 block">
+                  Relative Humidity
+                </span>
+                <span className="text-sm font-bold text-stone-900 block">
+                  {currentWeather?.humidity_pct == null
+                    ? '—'
+                    : `${currentWeather.humidity_pct}%`}
                 </span>
               </div>
+
               <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-center space-y-1">
                 <Wind className="w-4 h-4 text-stone-500 mx-auto" />
-                <span className="text-[11px] font-semibold text-stone-700 block">Wind Velocity</span>
-                <span className="inline-block text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                  Pending Integration
+                <span className="text-[11px] font-semibold text-stone-700 block">
+                  Wind Velocity
+                </span>
+                <span className="text-sm font-bold text-stone-900 block">
+                  {currentWeather?.wind_speed_kmh == null
+                    ? '—'
+                    : `${currentWeather.wind_speed_kmh} km/h`}
                 </span>
               </div>
             </div>
 
-            <div className="text-xs text-stone-600 leading-relaxed bg-amber-50/70 p-3.5 rounded-xl border border-amber-200 flex items-start gap-2.5">
-              <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <span>
-                <strong className="text-amber-950 font-semibold">Feed Status:</strong> Live agrometeorology and weather forecasting endpoints are pending backend integration. In adherence to our zero-fabricated-data policy, no placeholder values or guessed numbers are displayed.
-              </span>
-            </div>
+            {!weatherData && (
+              <div className="text-xs text-stone-600 leading-relaxed bg-amber-50/70 p-3.5 rounded-xl border border-amber-200 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <span>
+                  <strong className="text-amber-950 font-semibold">
+                    {t('weatherStatusTitle')}:
+                  </strong>{' '}
+                  {weatherLoading
+                    ? t('weatherStatusLoading')
+                    : weatherError
+                      ? t('weatherStatusError')
+                      : t('weatherStatusIdle')}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Sentinel-2 NDVI Layout Chrome with Honest Pending Status */}
@@ -558,10 +734,6 @@ export const KhetSwasthya: React.FC = () => {
                   <span className="text-xs text-stone-500">Target Feed: Copernicus Sentinel-2 Multispectral Instrument (MSI)</span>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-full">
-                <Clock className="w-3 h-3" />
-                Telemetry Pending
-              </span>
             </div>
 
             {/* Sentinel-2 Specifications */}

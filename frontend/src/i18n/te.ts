@@ -309,8 +309,8 @@ accessDenied: "Access denied",
   assistantSpokenWordsNote: 'మీరు మాట్లాడిన మాటలు సమీక్ష కోసం టెక్స్ట్ బాక్స్‌లో కనిపిస్తాయి.',
   assistantDoneBtn: 'పూర్తయింది',
   assistantReadyToSend: 'ఫోటో జతచేయబడింది (పంపడానికి సిద్ధం)',
-  assistantPlaceholderListening: 'వాయిస్ వింటోంది... మీరు మాట్లాడే మాటలు ఇక్కడ కనిపిస్తాయి...',
-  assistantPlaceholderDefault: 'హిందీ, ఇంగ్లీష్, తెలుగు, తమిళం, బెంగాలీ, మరాఠీలలో అడగండి... (కొత్త లైన్ కోసం Shift+Enter)',
+ assistantPlaceholderListening: 'వింటోంది...',
+  assistantPlaceholderDefault: 'మీ భాషలో అడగండి... (కొత్త లైన్: Shift+Enter)',
   assistantSendQueryBtn: 'ప్రశ్నను పంపండి',
   assistantConsultingEngine: 'కిసాన్ వ్యవసాయ-వ్యాధి ఇంజిన్‌తో విశ్లేషిస్తోంది...',
 
@@ -349,6 +349,12 @@ accessDenied: "Access denied",
 
   telemetryEarlyWarningTitle: 'పొలం ప్రమాద హెచ్చరికలు',
   telemetryEarlyWarningDesc: 'మీ పొలం స్థానం కోసం వాతావరణ డేటా మరియు వ్యవసాయ అసాధారణతల గుర్తింపు ఆధారంగా.',
+  weatherStatusTitle: 'వాతావరణ స్థితి',
+  weatherStatusLoading: 'ఎంచుకున్న ప్రదేశానికి వాతావరణ సూచన పొందుతోంది...',
+  weatherStatusError: 'వాతావరణ సూచనను లోడ్ చేయలేకపోయాం. కోఆర్డినేట్లను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.',
+  weatherStatusIdle: 'GPS ద్వారా మీ స్థానాన్ని గుర్తించండి లేదా కోఆర్డినేట్లను నమోదు చేసి Fetch Weather నొక్కండి. ఊహించిన విలువలు ఉపయోగించబడవు.',
+  weatherFetchButton: 'వాతావరణం చూడండి',
+  weatherFetchLoading: 'పొందుతోంది...',
 };
 
 

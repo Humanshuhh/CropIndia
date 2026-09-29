@@ -9,7 +9,6 @@ import {
   MapPin,
   Trees,
   ArrowRight,
-  Sparkles,
   PhoneCall,
   CheckCircle2,
   AlertTriangle,
@@ -98,17 +97,10 @@ export const Home: React.FC = () => {
       {/* 1. GREETING & FARM CONTEXT SECTION */}
       <section className="bg-stone-900 text-stone-100 rounded-3xl p-6 sm:p-8 md:p-10 border border-stone-800 shadow-xl space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-800 pb-6">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-700/80 text-emerald-400 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{t('appTitle')} — Decision Support</span>
-            </div>
+          <div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white">
               {greetingText}
             </h1>
-            <p className="text-xs sm:text-sm text-stone-400">
-              {t('appTagline')}
-            </p>
           </div>
 
           <Link
