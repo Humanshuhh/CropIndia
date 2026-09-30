@@ -340,7 +340,7 @@ Kisan Sahayak is designed to scale across state borders and emerging economies:
 
 
 
-##📄 License
+## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
