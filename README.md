@@ -44,31 +44,95 @@ Smallholder farmers in India face compounding challenges: unpredictable climate 
 ## 🏗️ System Architecture
 
 ```mermaid
+flowchart TD
+    %% Class Styles
+    classDef client fill:#E8F5E9,stroke:#2E7D32,stroke-width:1.5px,color:#1B5E20;
+    classDef gateway fill:#E3F2FD,stroke:#1565C0,stroke-width:1.5px,color:#0D47A1;
+    classDef backend fill:#FFF8E1,stroke:#F57F17,stroke-width:1.5px,color:#E65100;
+    classDef external fill:#F3E5F5,stroke:#7B1FA2,stroke-width:1.5px,color:#4A148C;
+    classDef greenZone fill:#E8F8F5,stroke:#00897B,stroke-width:1.5px,color:#004D40;
+    classDef blueZone fill:#E1F5FE,stroke:#0288D1,stroke-width:1.5px,color:#01579B;
 
-graph TD
-    %% Frontend Client
-    Client["<b>React + Vite Web Client</b><br/>(Tailwind CSS, Lucide Icons, Web Audio)"]
+    %% Client Layer
+    subgraph Client["Frontend Client (React 18, Vite, Tailwind)"]
+        UI_Diag["Leaf Pathogen Scanner<br/>(DiseaseDiagnosis.tsx)"]:::client
+        UI_Soil["Soil Health Engine<br/>(KhetSwasthya.tsx)"]:::client
+        UI_Mitra["Kisan Mitra Voice Bot<br/>(Audio Assistant)"]:::client
+        UI_Hist["Consultation Timeline<br/>(History.tsx)"]:::client
+        UI_Admin["Admin Metrics Portal<br/>(AdminDashboard.tsx)"]:::client
+    end
 
-    %% Connection
-    Client -->|"REST APIs / JSON"| Backend
+    %% Gateway Layer
+    subgraph Gateway["Reverse Proxy and Routing"]
+        Proxy["Vite Dev Proxy / Cloud Run Router<br/>/api/v1/ Routes"]:::gateway
+    end
 
-    %% Backend
-    Backend["<b>FastAPI Backend</b><br/>(Uvicorn ASGI, Python 3.11+)"]
+    %% Backend Layer
+    subgraph Backend["Backend Engine (FastAPI and Uvicorn)"]
+        R_Diag["diagnostics.py<br/>POST /api/v1/diagnose"]:::backend
+        R_Soil["soil.py<br/>POST /api/v1/soil/evaluate"]:::backend
+        R_Weather["weather.py<br/>GET /api/v1/weather/forecast"]:::backend
+        R_Hist["history.py<br/>GET /api/v1/history/farmer_id"]:::backend
+        R_Voice["voice.py<br/>POST /api/v1/voice/listen"]:::backend
+        R_Worker["APScheduler Worker<br/>Daily Farm Telemetry Scan"]:::backend
+    end
 
-    %% Branching out to services
-    Backend --> Gemini
-    Backend --> Geo
-    Backend --> Data
+    %% External Services
+    subgraph External["External Services and AI Engines"]
+        Gemini["Google Gemini API<br/>(3.8 Flash / 3.7 Flash)<br/>Multimodal Leaf Vision"]:::external
+        OpenMeteo["Open-Meteo API<br/>7-Day Weather and Spray Suitability"]:::external
+        Sentinel["Sentinel-2 MSI Telemetry<br/>10m NDVI and NDWI Canopy Bands"]:::external
+        TTS["Google Text-to-Speech (gTTS)<br/>Regional Voice Advisory"]:::external
+    end
 
-    %% Bottom Level Services
-    Gemini["<b>Google Gemini Engine</b><br/>- Vision Diagnostics<br/>- Dialect Mirroring<br/>- Regenerative Plans"]
+    %% Data Layer
+    subgraph GreenStore["Green Zone: Operational Store (Firestore)"]
+        FS_Diag[("leaf_diagnostics")]:::greenZone
+        FS_Soil[("soil_health_records")]:::greenZone
+        FS_Warn[("early_warnings")]:::greenZone
+        FS_Users[("farmers and admins")]:::greenZone
+    end
 
-    Geo["<b>Geospatial & Weather API</b><br/>- Open-Meteo Telemetry<br/>- Agro-Climatic Zone DB<br/>- Satellite NDVI/NDWI"]
+    subgraph BlueStore["Blue Zone: Analytical Warehouse (BigQuery)"]
+        BQ_Weather[("historical_weather")]:::blueZone
+        BQ_SHC[("soil_health_cards")]:::blueZone
+        BQ_Warn[("early_warning_logs")]:::blueZone
+    end
 
-    Data["<b>Data Persistence</b><br/>- Cloud Firestore<br/>- Google BigQuery"]
+    %% Client -> Gateway
+    UI_Diag --> Proxy
+    UI_Soil --> Proxy
+    UI_Mitra --> Proxy
+    UI_Hist --> Proxy
+    UI_Admin --> Proxy
 
+    %% Gateway -> Routers
+    Proxy --> R_Diag
+    Proxy --> R_Soil
+    Proxy --> R_Weather
+    Proxy --> R_Hist
+    Proxy --> R_Voice
+
+    %% Routers -> External
+    R_Diag -->|Image Bytes + Context| Gemini
+    R_Weather -->|Coordinates| OpenMeteo
+    R_Worker -->|Coordinate Bounding Box| Sentinel
+    R_Voice -->|Speech Synthesis Request| TTS
+
+    %% Persistence -> Firestore (Green Zone)
+    R_Diag -->|save_leaf_diagnostic| FS_Diag
+    R_Soil -->|save_soil_record| FS_Soil
+    R_Hist -->|get_combined_farmer_history| FS_Diag
+    R_Hist -->|get_combined_farmer_history| FS_Soil
+    R_Worker -->|Trigger alerts| FS_Warn
+
+    %% Persistence -> BigQuery (Blue Zone)
+    R_Worker -.->|Batch load weather logs| BQ_Weather
+    R_Soil -.->|Batch load SHC records| BQ_SHC
+    R_Worker -.->|Audit warning events| BQ_Warn
 ```
 ---
+
 ## 💻 Technology Stack
 
 | Category | Technologies |
@@ -81,6 +145,86 @@ graph TD
 | **DevOps & Cloud** | Google Cloud Run, Docker, GitHub Actions (CI/CD) |
 
 ----------------------------------------------------------------------------------------
+
+```text
+CropIndia/
+├── backend/
+│   ├── agronomy/                 # Automated agro-climatic & background worker tasks
+│   │   ├── __init__.py
+│   │   └── telemetry_worker.py   # Scheduled Sentinel-2 & weather telemetry scan jobs
+│   ├── database/                 # Persistence layer (Firestore Green Zone & BigQuery Blue Zone)
+│   │   ├── __init__.py
+│   │   ├── bigquery.py           # Google Cloud BigQuery client connection & credentials
+│   │   ├── bigquery_crud.py      # BigQuery batch ingestion (weather, bulk SHC, warning audit logs)
+│   │   ├── firebase.py           # Firebase Admin SDK & Cloud Firestore initialization
+│   │   ├── firestore_crud.py     # Firestore CRUD (farmers, leaf diagnostics, soil records, warnings)
+│   │   └── credentials/          # Local service account keys (gitignored)
+│   │       └── firebase-key.json
+│   ├── ml_engine/                # AI reasoning & agronomic models
+│   │   ├── __init__.py
+│   │   └── soil_advisor.py       # Regenerative soil health analysis & crop rotation engine
+│   ├── routers/                  # Modular FastAPI HTTP route controllers
+│   │   ├── __init__.py
+│   │   ├── admin.py              # Admin metrics & dashboard analytics
+│   │   ├── auth.py               # Farmer & administrative authentication
+│   │   ├── diagnostics.py        # Plant leaf vision diagnosis & eco-friendly remedy pipeline
+│   │   ├── early_warning.py      # Climate stress, drought, & pathogen outbreak warnings
+│   │   ├── farmer_assistant.py   # Kisan Mitra conversational AI assistant
+│   │   ├── farmer_profile.py     # Farmer landholding & profile management
+│   │   ├── history.py            # Combined foliar scans & soil evaluation history feed
+│   │   ├── soil.py               # Soil Health Card evaluation & biological amendment planning
+│   │   ├── telemetry.py          # Sentinel-2 MSI surface reflectance (NDVI/NDWI) mapping
+│   │   ├── voice.py              # Text-to-speech audio streaming endpoints (gTTS)
+│   │   └── weather.py            # Keyless agrometeorological 7-day forecast & spray advisories
+│   ├── schemas/                  # Pydantic v2 data models & request/response contracts
+│   │   ├── __init__.py
+│   │   ├── Farmer_schemas.py
+│   │   ├── climate_schemas.py
+│   │   ├── diagnosis_schemas.py
+│   │   ├── soil_schemas.py
+│   │   └── warning_schemas.py
+│   ├── services/                 # External service integrations
+│   │   ├── __init__.py
+│   │   └── weather.py            # Open-Meteo client & spray suitability calculations
+│   └── main.py                   # FastAPI application factory, lifespan scheduler, CORS & router mounting
+├── frontend/
+│   ├── public/                   # Static browser assets & icons
+│   ├── src/
+│   │   ├── components/           # Reusable UI cards, audio players, error alerts, & layouts
+│   │   │   └── common/
+│   │   │       ├── ErrorMessage.tsx
+│   │   │       └── VoiceReaderButton.tsx
+│   │   ├── context/              # Global React state management
+│   │   │   ├── LanguageContext.tsx
+│   │   │   ├── ResultCacheContext.tsx
+│   │   │   └── VoiceContext.tsx
+│   │   ├── pages/                # Primary application views
+│   │   │   ├── AdminDashboard.tsx
+│   │   │   ├── DiseaseDiagnosis.tsx
+│   │   │   ├── History.tsx       # Unified consultation history timeline
+│   │   │   ├── Home.tsx
+│   │   │   ├── KhetSwasthya.tsx  # Soil advisory, live Open-Meteo weather & Sentinel-2 cards
+│   │   │   └── KisanMitra.tsx
+│   │   ├── services/             # Axios/fetch API client adapters
+│   │   │   ├── diagnostics.ts
+│   │   │   ├── history.ts
+│   │   │   └── soil.ts
+│   │   ├── types/                # TypeScript interface definitions & data contracts
+│   │   │   ├── api.types.ts
+│   │   │   └── soil.types.ts
+│   │   ├── App.tsx               # Main routing & layout assembly
+│   │   └── main.tsx              # React DOM entry point
+│   ├── index.html
+│   ├── package.json              # Frontend npm dependencies (React 18, Lucide, Tailwind)
+│   ├── tsconfig.json             # TypeScript compiler configuration
+│   └── vite.config.ts            # Vite bundler configuration & /api reverse-proxy
+├── .env.example                  # Template for required environment variables
+├── .gitignore                    # Git tracking exclusions (virtual environments, keys, dist)
+├── requirements.txt              # Backend Python dependencies (FastAPI, google-genai, gTTS, etc.)
+└── README.md                     # Technical architecture, installation guide, & API documentation
+
+```
+---
 
 ## 🚀 Getting Started
 
@@ -183,6 +327,8 @@ The backend exposes a RESTful API designed for seamless integration with the Rea
 > 💡 **Interactive Documentation:** Because the backend is built with **FastAPI**, you can explore all endpoints, view request/response schemas, and test the API directly in your browser by visiting the auto-generated Swagger UI at: 
 > **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
 
+---
+
 ## 🌐 Digital Public Good & BRICS Alignment
 Kisan Sahayak is designed to scale across state borders and emerging economies:
 
@@ -192,7 +338,9 @@ Kisan Sahayak is designed to scale across state borders and emerging economies:
 
 3)Low-Bandwidth Optimization: Lightweight API responses and cached translation endpoints ensure reliability in poor rural connectivity zones.
 
-📄 License
+
+
+##📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
