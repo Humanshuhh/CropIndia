@@ -30,11 +30,17 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 
 
 import { useResultCache } from '../context/ResultCacheContext';
+import { useAuth } from '../context/AuthContext';
 
 export const KhetSwasthya: React.FC = () => {
   const { t, language } = useLanguage();
   const { isSpeaking, activeContentId, currentSentenceIndex } = useVoice();
   const { soilCache, setSoilCache } = useResultCache();
+  const { user } = useAuth();
+
+  const farmerId = user
+    ? `KS-${user.uid.slice(0, 8).toUpperCase()}`
+    : 'default_farmer';
 
 
   const coords = soilCache.coords;
@@ -194,6 +200,7 @@ const handleFetchWeather = () => {
       potassium_kg_ha: shcValues.k ? parseFloat(shcValues.k) : undefined,
       zinc_ppm: shcValues.zn ? parseFloat(shcValues.zn) : undefined,
       target_language: language,
+      farmer_id: farmerId,
     };
 
     setStatus('loading');
@@ -829,41 +836,53 @@ const handleFetchWeather = () => {
             </div>
           </div>
 
-          {/* 1. Soil Advisory / Condition & Summary */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-700" />
-                <span>Soil Condition & Advisory</span>
-              </h3>
-              {isVoiceReadingThisReport && !report.spoken_summary && (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                  Reading Aloud
-                </span>
-              )}
-            </div>
-            <div className="text-base text-stone-800 leading-relaxed bg-emerald-50/50 p-5 rounded-2xl border border-emerald-200 shadow-2xs">
-              {isVoiceReadingThisReport ? (
-                <p>
-                  {reportSentences.map((sentence, idx) => (
+          {/* Spoken Script Box with Sentence-level visual tracking (§7) */}
+          {report.spoken_summary && (
+            <div className="rounded-2xl border border-stone-200 p-5 bg-stone-100/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>{t('spokenAdvisoryTitle')}</span>
+                </h3>
+                {isVoiceReadingThisReport && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                    Speaking Now
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-stone-800 italic leading-relaxed">
+                {isVoiceReadingThisReport ? (
+                  reportSentences.map((sentence, idx) => (
                     <span
                       key={idx}
                       className={`transition-all duration-150 ${
                         currentSentenceIndex === idx
-                          ? 'bg-amber-200 text-stone-950 px-1 py-0.5 rounded-sm font-semibold shadow-2xs'
+                          ? 'bg-amber-200 text-stone-950 px-1 py-0.5 rounded-sm font-semibold not-italic shadow-2xs'
                           : ''
                       }`}
                     >
                       {sentence}{' '}
                     </span>
-                  ))}
-                </p>
-              ) : (
-                <p className="font-medium text-stone-900">
-                  {report.soil_health_assessment || report.spoken_summary || ''}
-                </p>
-              )}
+                  ))
+                ) : (
+                  `"${report.spoken_summary}"`
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* 1. Soil Advisory / Condition & Summary */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-700" />
+              <span>Soil Condition & Advisory</span>
+            </h3>
+
+            <div className="text-base text-stone-800 leading-relaxed bg-emerald-50/50 p-5 rounded-2xl border border-emerald-200 shadow-2xs">
+              <p className="font-medium text-stone-900">
+                {report.soil_health_assessment || ''}
+              </p>
             </div>
           </div>
 
@@ -921,13 +940,13 @@ const handleFetchWeather = () => {
                 <span>{t('cropRotationTitle')} (Regenerative Cycle)</span>
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs sm:text-sm text-stone-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-stone-700">
                 {report.regenerative_crop_rotations.map((rec, i) => (
                   <div
                     key={i}
                     className="rounded-2xl bg-stone-50 border border-stone-200 p-4 space-y-2 shadow-2xs"
                   >
-                    <div className="font-bold text-stone-900 text-sm flex items-center justify-between border-b border-stone-200 pb-1.5">
+                    <div className="font-bold text-stone-900 text-sm flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 border-b border-stone-200 pb-1.5">
                       <span>{rec.season}</span>
                       <span className="text-emerald-800 font-semibold">{rec.recommended_crop}</span>
                     </div>
@@ -1022,42 +1041,6 @@ const handleFetchWeather = () => {
                   </span>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Spoken Script Box with Sentence-level visual tracking (§7) */}
-          {report.spoken_summary && (
-            <div className="rounded-2xl border border-stone-200 p-5 bg-stone-100/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>{t('spokenAdvisoryTitle')}</span>
-                </h3>
-                {isVoiceReadingThisReport && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                    Speaking Now
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-stone-800 italic leading-relaxed">
-                {isVoiceReadingThisReport ? (
-                  reportSentences.map((sentence, idx) => (
-                    <span
-                      key={idx}
-                      className={`transition-all duration-150 ${
-                        currentSentenceIndex === idx
-                          ? 'bg-amber-200 text-stone-950 px-1 py-0.5 rounded-sm font-semibold not-italic shadow-2xs'
-                          : ''
-                      }`}
-                    >
-                      {sentence}{' '}
-                    </span>
-                  ))
-                ) : (
-                  `"${report.spoken_summary}"`
-                )}
-              </p>
             </div>
           )}
 

@@ -39,13 +39,18 @@ export const DATA_SOURCES: DataSourceInfo[] = [
     attributionText: 'GIS data: Live backend endpoint confirmed operational',
     honestyCaveat: 'partialGisCoverage',
   },
+
   {
     id: 'imd-weather-telemetry',
-    name: 'Field Weather & 7-Day Precipitation Outlook',
-    provider: 'Meteorological Telemetry (Planned: IMD / Open-Meteo)',
-    status: 'pending',
-    whatItProvides: 'Local temperature, relative humidity, precipitation probability, and wind velocity.',
-    attributionText: 'Not yet connected to live weather data feed',
+    name: 'Field Weather & 7-Day Forecast',
+    provider: 'Open-Meteo Forecast API',
+    status: 'integrated',
+    whatItProvides:
+      'Current temperature, relative humidity, precipitation, wind speed, weather conditions, next 12-hour rain probability, spray advisory, and a 7-day daily forecast.',
+    updateCadence:
+      'Fetched on demand after GPS location detection or when the farmer selects Fetch Weather.',
+    attributionText:
+      'Weather forecast data sourced from the Open-Meteo Forecast API.',
   },
   {
     id: 'copernicus-sentinel-2',
@@ -55,6 +60,16 @@ export const DATA_SOURCES: DataSourceInfo[] = [
     whatItProvides: 'Direct Sentinel-2 Level-2A satellite imagery and Normalized Difference Vegetation Index (NDVI) field-level vegetative vigor from actual satellite passes is NOT currently connected.',
     attributionText: 'Not yet connected to live Sentinel-2 satellite telemetry',
     honestyCaveat: 'sentinelEstimatedNote',
+  },
+  {
+    id: 'admin-auth-dashboard',
+    name: 'Admin Authentication & Dashboard',
+    provider: 'Kisan Sahayak Admin Portal',
+    status: 'pending',
+    whatItProvides:
+      'Administrator login, role-based dashboard access, and system-wide metrics including total farmers, active warnings, soil records, and diagnostics. The frontend and metrics integration are implemented; Firebase-backed runtime verification and production security hardening remain pending.',
+    attributionText:
+      'Prototype implemented. Authorized Firebase credentials are needed for runtime verification. Server-side admin authorization, Firebase token verification, and secure password handling remain future production requirements. Admin accounts are provisioned by authorized personnel; public admin signup is not available.',
   },
 ];
 

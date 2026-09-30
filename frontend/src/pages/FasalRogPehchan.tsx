@@ -13,6 +13,7 @@ import {
   Activity,
   Volume2,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useVoice } from '../context/VoiceContext';
 import { diagnoseCrop, MAX_IMAGE_SIZE_BYTES } from '../services/diagnosis';
@@ -26,6 +27,12 @@ import { useResultCache } from '../context/ResultCacheContext';
 
 export const FasalRogPehchan: React.FC = () => {
   const { t, language } = useLanguage();
+  const { user } = useAuth();
+
+  const farmerId = user
+    ? `KS-${user.uid.slice(0, 8).toUpperCase()}`
+    : 'default_farmer';
+
   const { isSpeaking, activeContentId, currentSentenceIndex } = useVoice();
   const { cropCache, setCropCache } = useResultCache();
 
@@ -100,7 +107,7 @@ export const FasalRogPehchan: React.FC = () => {
     setError(null);
 
     try {
-      const diagnosis = await diagnoseCrop(selectedFile, language);
+      const diagnosis = await diagnoseCrop(selectedFile, language, farmerId);
       setCropCache(p => ({ ...p, result: diagnosis, status: 'success', error: null }));
       setTimeout(() => {
         document.getElementById('diagnosis-result-section')?.scrollIntoView({ behavior: 'smooth' });

@@ -217,7 +217,8 @@ export const KisaanTelemetry: React.FC = () => {
             title={t('agroClimaticMapTitle')}
             description="Visual boundaries for the 15 major Indian agro-climatic zones and sub-regions mapped using official ICAR/Planning Commission geospatial shapefiles."
             icon={<Compass className="w-5 h-5" />}
-            tag="Zone Shapefile Pending"
+            tag={t('dsStatusConnected')}
+            feedStatusText={t('telemetryAgroConnectedTitle')}
             onClick={() => handleSelectLayer('agro_climatic')}
             isSelected={selectedLayer === 'agro_climatic'}
             actionText={selectedLayer === 'agro_climatic' ? 'Viewing Layer' : 'Inspect Zone Map'}
@@ -228,6 +229,7 @@ export const KisaanTelemetry: React.FC = () => {
             description="Multispectral surface reflectance data from Sentinel-2 satellite passes (10-meter resolution) providing 5-day NDVI vegetation vigor updates."
             icon={<Satellite className="w-5 h-5" />}
             tag="Sentinel-2 API Pending"
+            feedStatusText={t('telemetryVegetationEstimatedNote')}
             onClick={() => handleSelectLayer('sentinel_ndvi')}
             isSelected={selectedLayer === 'sentinel_ndvi'}
             actionText={selectedLayer === 'sentinel_ndvi' ? 'Viewing Layer' : 'Inspect Satellite Map'}
@@ -238,6 +240,7 @@ export const KisaanTelemetry: React.FC = () => {
             description="Proactive anomaly monitoring fusing satellite moisture indices, temperature anomalies, and disease susceptibility models."
             icon={<ShieldAlert className="w-5 h-5" />}
             tag="Risk Alerts"
+            feedStatusText={t('telemetryEarlyWarningDesc')}
             onClick={() => handleSelectLayer('early_warning')}
             isSelected={selectedLayer === 'early_warning'}
             actionText={selectedLayer === 'early_warning' ? 'Viewing Alerts' : 'Inspect Risk Alerts'}
@@ -280,17 +283,27 @@ export const KisaanTelemetry: React.FC = () => {
                 </div>
               </div>
 
-              {selectedLayer === 'sentinel_ndvi' && sentinelData ? (
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold self-start sm:self-auto ${sentinelData.feed_available ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-amber-50 text-amber-800 border border-amber-300'}`}>
+              {selectedLayer === 'sentinel_ndvi' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold self-start sm:self-auto bg-amber-50 text-amber-800 border border-amber-300">
                   <Clock className="w-3.5 h-3.5" />
-                  <span>{sentinelData.feed_available ? t('telemetryConnectedBadge') : t('telemetryFeedPendingBadge')}</span>
+                  <span>Sentinel-2 API Pending</span>
                 </span>
               ) : selectedLayer === 'agro_climatic' ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 self-start sm:self-auto">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{t('telemetryFeedPendingBadge')}</span>
-                </span>
-              ) : null}
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold self-start sm:self-auto ${
+                    agroClimaticData?.features?.length
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+                      : 'bg-amber-50 text-amber-800 border border-amber-300'
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>
+                      {agroClimaticData?.features?.length
+                        ? t('telemetryConnectedBadge')
+                        : t('telemetryFeedPendingBadge')}
+                    </span>
+                  </span>
+                ) : null}
             </div>
 
         {/* Interactive Controls Toolbar for the Selected Layer */}
