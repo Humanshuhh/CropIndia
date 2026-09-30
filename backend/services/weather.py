@@ -11,7 +11,6 @@ OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 router = APIRouter(prefix="/api/v1/weather", tags=["Agro Weather Engine"])
 
-# Headers prevent Render/cloud IP rate-limiting and connection drops by Open-Meteo
 REQUEST_HEADERS = {
     "User-Agent": "CropIndia-AgroApp/1.0 (contact: admin@cropindia.org)",
     "Accept": "application/json",
@@ -20,8 +19,8 @@ REQUEST_HEADERS = {
 
 def _get_fallback_weather(latitude: float, longitude: float) -> Dict[str, Any]:
     """
-    Supplies an agronomic fallback payload if Open-Meteo is temporarily
-    unreachable or rate-limited on the cloud deployment host.
+     agronomic baseline payload returned when live data feeds
+    are rate-limited or unreachable on cloud container hosts.
     """
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     return {
@@ -62,14 +61,46 @@ def _get_fallback_weather(latitude: float, longitude: float) -> Dict[str, Any]:
                 "total_precipitation_mm": 0.0,
                 "weather_code": 0,
             },
+            {
+                "date": "Day 4",
+                "temp_max_c": 31.2,
+                "temp_min_c": 22.1,
+                "rain_chance_max_pct": 5,
+                "total_precipitation_mm": 0.0,
+                "weather_code": 1,
+            },
+            {
+                "date": "Day 5",
+                "temp_max_c": 29.8,
+                "temp_min_c": 20.9,
+                "rain_chance_max_pct": 40,
+                "total_precipitation_mm": 2.5,
+                "weather_code": 2,
+            },
+            {
+                "date": "Day 6",
+                "temp_max_c": 28.5,
+                "temp_min_c": 19.5,
+                "rain_chance_max_pct": 60,
+                "total_precipitation_mm": 12.0,
+                "weather_code": 3,
+            },
+            {
+                "date": "Day 7",
+                "temp_max_c": 27.9,
+                "temp_min_c": 19.0,
+                "rain_chance_max_pct": 10,
+                "total_precipitation_mm": 0.0,
+                "weather_code": 1,
+            },
         ],
     }
 
 
 async def get_weather_forecast(latitude: float, longitude: float) -> Dict[str, Any]:
     """
-    Fetches real-time weather, 24-hour hourly outlook, and 7-day agricultural
-    forecast matching the KhetSwasthya UI telemetry cards.
+    Attempts live Open-Meteo retrieval. If blocked or rate-limited,
+    falls back cleanly to prevent UI failure.
     """
     params = {
         "latitude": latitude,
@@ -100,27 +131,21 @@ async def get_weather_forecast(latitude: float, longitude: float) -> Dict[str, A
     }
 
     try:
-        # Extended timeout for cloud container network latency
-        async with httpx.AsyncClient(timeout=12.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.get(
                 OPEN_METEO_URL, params=params, headers=REQUEST_HEADERS
             )
             response.raise_for_status()
             data = response.json()
 
+        # Parse live response
         current = data.get("current", {})
         hourly = data.get("hourly", {})
         daily = data.get("daily", {})
 
-        # Compute next 12 hours max rain probability
         next_12h_probs = hourly.get("precipitation_probability", [])[:12]
         max_rain_12h = max(next_12h_probs) if next_12h_probs else 0
 
-        # Spray Advisory Logic:
-        # Avoid spraying if:
-        # 1. Rain probability in next 12h >= 30%
-        # 2. Currently raining (> 0 mm)
-        # 3. Wind speed > 15 km/h (spray drift risk)
         wind = current.get("wind_speed_10m", 0.0)
         curr_rain = current.get("precipitation", 0.0)
         safe_to_spray = (max_rain_12h < 30) and (wind < 15.0) and (curr_rain == 0.0)
@@ -139,6 +164,7 @@ async def get_weather_forecast(latitude: float, longitude: float) -> Dict[str, A
                 }
             )
 
+        logger.info("Successfully fetched live agricultural forecast from Open-Meteo.")
         return {
             "latitude": latitude,
             "longitude": longitude,
@@ -156,13 +182,14 @@ async def get_weather_forecast(latitude: float, longitude: float) -> Dict[str, A
         }
 
     except Exception as exc:
-        logger.warning(f"Open-Meteo request failed on host ({exc}). Utilizing fallback baseline.")
+        logger.warning(
+            f"Live weather request failed ({exc}). Returning baseline payload."
+        )
         return _get_fallback_weather(latitude, longitude)
 
 
-# Backward-compatible helper for existing assistant / diagnostic calls
 async def get_current_weather(latitude: float, longitude: float) -> Dict[str, Any]:
-    """Legacy helper returning lightweight current snapshot."""
+    """Snapshot helper for assistant/diagnostic services."""
     forecast = await get_weather_forecast(latitude, longitude)
     curr = forecast.get("current", {})
     return {
@@ -174,7 +201,6 @@ async def get_current_weather(latitude: float, longitude: float) -> Dict[str, An
     }
 
 
-# Router endpoint queried by KhetSwasthya.tsx
 @router.get("/forecast")
 async def get_forecast_endpoint(
     lat: Optional[float] = Query(None, description="Field latitude coordinate"),
@@ -182,11 +208,7 @@ async def get_forecast_endpoint(
     latitude: Optional[float] = Query(None, description="Alternative field latitude"),
     longitude: Optional[float] = Query(None, description="Alternative field longitude"),
 ):
-    """
-    Supplies the live agrometeorological feed for KhetSwasthya.tsx.
-    Gracefully handles empty/missing coordinates and guarantees a 200 OK return on Render.
-    """
-    # Fallback to default coordinates if not passed or passed as None
+    """Agrometeorological endpoint queried by frontend."""
     final_lat = lat if lat is not None else (latitude if latitude is not None else 23.66)
     final_lon = lon if lon is not None else (longitude if longitude is not None else 86.42)
 
@@ -194,5 +216,5 @@ async def get_forecast_endpoint(
     return {
         "status": "success",
         "data": forecast_data,
-        **forecast_data,  # Unpacked so frontend can read res.data OR res directly
+        **forecast_data,
     }
