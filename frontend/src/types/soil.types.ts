@@ -13,6 +13,7 @@ export interface SoilHealthInput {
   zinc_ppm?: number;
   zinc_zn?: number;
   target_language?: string;
+  farmer_id?: string;
 }
 
 export interface BiologicalConditioningAction {

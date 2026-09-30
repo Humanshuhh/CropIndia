@@ -12,7 +12,11 @@ export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
  * Enforces client constraints before upload with plain-language farmer error message.
  * Passes farmer's selected language so audio script and diagnosis are localized.
  */
-export async function diagnoseCrop(file: File, targetLanguage?: SupportedLanguage | string): Promise<CropDiagnosisResponse> {
+export async function diagnoseCrop(
+  file: File,
+  targetLanguage?: SupportedLanguage | string,
+  farmerId?: string
+): Promise<CropDiagnosisResponse> {
   // Pre-upload validation per Addendum §6
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
     const error: NormalizedError = {
@@ -34,6 +38,9 @@ export async function diagnoseCrop(file: File, targetLanguage?: SupportedLanguag
   formData.append('file', file);
   if (targetLanguage) {
     formData.append('target_language', targetLanguage);
+  }
+  if (farmerId) {
+    formData.append('farmer_id', farmerId);
   }
 
   return await apiPostMultipart<CropDiagnosisResponse>('/api/v1/diagnose', formData);

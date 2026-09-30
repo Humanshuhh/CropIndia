@@ -11,6 +11,7 @@ interface PendingStateCardProps {
   onClick?: () => void;
   isSelected?: boolean;
   actionText?: string;
+  feedStatusText?: string;
 }
 
 /**
@@ -28,6 +29,7 @@ export const PendingStateCard: React.FC<PendingStateCardProps> = ({
   onClick,
   isSelected = false,
   actionText,
+  feedStatusText,
 }) => {
   const { t } = useLanguage();
 
@@ -88,7 +90,9 @@ export const PendingStateCard: React.FC<PendingStateCardProps> = ({
             }`}
             aria-hidden="true"
           ></span>
-          <span className="truncate">{t('pendingIntegrationSubtitle')}</span>
+          <span className="truncate">
+            {feedStatusText || t('pendingIntegrationSubtitle')}
+          </span>
         </div>
 
         {isInteractive && (
