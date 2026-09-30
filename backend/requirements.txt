@@ -23,3 +23,4 @@ apscheduler
 # Add this for the database
 firebase-admin>=6.5.0
 gTTS>=2.5.4
+ee
