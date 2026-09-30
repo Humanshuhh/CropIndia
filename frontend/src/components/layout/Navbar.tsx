@@ -279,7 +279,42 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Menu Dropdown / Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 w-full shadow-2xl border-t border-stone-800 bg-stone-900 px-4 pt-3 pb-6 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto">
+        <div className="lg:hidden absolute top-full left-0 w-full shadow-2xl border-t border-stone-800 bg-stone-900 px-4 pt-3 pb-6 space-y-3 max-h-[calc(100dvh_-_8rem_-_env(safe-area-inset-bottom,0px))] overflow-y-auto">
+
+          {/* 1. TOP: Profile Card */}
+          {user && (
+            <div className="pb-3 border-b border-stone-800">
+              <Link
+                to="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between bg-stone-800/80 p-3 rounded-lg hover:bg-stone-800 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-full bg-emerald-800 flex items-center justify-center text-white font-bold text-sm">
+                    {user.name
+                      ? user.name.charAt(0).toUpperCase()
+                      : user.phone
+                        ? user.phone.charAt(0)
+                        : 'F'}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-white flex items-center gap-1.5">
+                      <UserIcon className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+                      <span>{t('navProfile')}</span>
+                    </div>
+                    <div className="text-xs text-stone-400 truncate max-w-44">
+                      {user.name || user.phone}
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs text-emerald-400 font-medium shrink-0">
+                  {t('navOpen')} &rarr;
+                </span>
+              </Link>
+            </div>
+          )}
+
+          {/* 2. MIDDLE: Navigation Links */}
           <div className="space-y-1">
             {navLinks.map((link) => (
               <NavLink
@@ -307,7 +342,7 @@ export const Navbar: React.FC = () => {
             ))}
           </div>
 
-          {/* Mobile Language Selector Grid */}
+          {/* 3. Language Selector */}
           <div className="pt-3 border-t border-stone-800">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">
               {t('languageSelectAria')}
@@ -325,44 +360,25 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   <span>{item.nativeName}</span>
-                  <span className="text-[11px] text-stone-400 font-mono uppercase">{item.code}</span>
+                  <span className="text-[11px] text-stone-400 font-mono uppercase">
+                    {item.code}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Mobile Auth Actions */}
-          <div className="pt-3 border-t border-stone-800 space-y-2">
+          {/* 4. BOTTOM: Separate Authentication Actions */}
+          <div className="pt-3 border-t border-stone-800">
             {user ? (
-              <>
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-between bg-stone-800/80 p-3 rounded-lg hover:bg-stone-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-full bg-emerald-800 flex items-center justify-center text-white font-bold text-sm">
-                      {user.name ? user.name.charAt(0).toUpperCase() : user.phone ? user.phone.charAt(0) : 'F'}
-                    </span>
-                    <div>
-                      <div className="text-sm font-semibold text-white flex items-center gap-1.5">
-                        <UserIcon className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
-                        <span>{t('navProfile')}</span>
-                      </div>
-                      <div className="text-xs text-stone-400 truncate max-w-44">{user.name || user.phone}</div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-emerald-400 font-medium">{t('navOpen')} &rarr;</span>
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full py-2.5 rounded bg-stone-800 text-xs text-stone-300 font-medium hover:text-white hover:bg-stone-700 flex items-center justify-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" aria-hidden="true" />
-                  <span>{t('navLogout')}</span>
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full py-2.5 rounded bg-stone-800 text-xs text-stone-300 font-medium hover:text-white hover:bg-stone-700 flex items-center justify-center gap-2"
+              >
+                <LogOut className="w-4 h-4" aria-hidden="true" />
+                <span>{t('navLogout')}</span>
+              </button>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 <Link
