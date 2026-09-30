@@ -63,12 +63,14 @@ app = FastAPI(
 # CORS configuration for local development and client consumption
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://crop-india.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # Mount all domain routers
 app.include_router(diagnostics_router)
 app.include_router(soil_router)
