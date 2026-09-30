@@ -133,9 +133,11 @@ export const Home: React.FC = () => {
               <span className="p-2 rounded-xl bg-amber-900/60 text-amber-400 shrink-0">
                 <Trees className="w-4 h-4" aria-hidden="true" />
               </span>
-              <div>
-                <span className="text-stone-400 block font-medium">{t('primaryCropsLabel')}</span>
-                <span className="text-stone-100 font-bold text-sm truncate max-w-xs block">
+              <div className="min-w-0">
+                <span className="text-stone-400 block font-medium">
+                  {t('primaryCropsLabel')}
+                </span>
+                <span className="text-stone-100 font-bold text-sm block min-w-0 whitespace-normal line-clamp-4">
                   {profile?.primaryCrops || '—'}
                 </span>
               </div>

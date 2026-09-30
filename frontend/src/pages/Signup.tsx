@@ -31,6 +31,11 @@ export const Signup: React.FC = () => {
     clearAuthError();
     setClientError(null);
 
+     if (!/^\d{10}$/.test(phone)) {
+      setClientError('Phone number must be exactly 10 digits.');
+      return;
+    }
+
     if (!/^\d{4}$/.test(mpin)) {
       setClientError('MPIN must be exactly 4 digits.');
       return;

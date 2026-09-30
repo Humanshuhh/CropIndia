@@ -54,9 +54,9 @@ export const App: React.FC = () => {
         <LanguageProvider>
           <VoiceProvider>
             <ResultCacheProvider>
-              <div className="flex flex-col min-h-screen bg-stone-50 text-stone-900">
+              <div className="flex flex-col min-h-screen bg-stone-50 text-stone-900 overflow-x-hidden">
                 <Navbar />
-                <main className="flex flex-1 flex-col min-h-0 pb-20 lg:pb-0">
+                <main className="flex flex-1 flex-col min-h-0 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
                   <Routes>
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/" element={<HomeOrWelcome />} />

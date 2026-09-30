@@ -148,7 +148,6 @@ export const Profile: React.FC = () => {
               state: cloudData.state || prev.state,
               district: cloudData.district || prev.district,
             }));
-            setSyncState('synced');
           }
         })
         .catch((err: any) => {

@@ -66,7 +66,7 @@ export const Navbar: React.FC = () => {
 
 
   return (
-    <header className="sticky top-0 z-40 bg-stone-900 text-stone-100 border-b border-stone-800 shadow-md">
+    <header className="sticky top-0 z-50 w-full bg-stone-900 text-stone-100 border-b border-stone-800 shadow-md relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-18">
           {/* Brand Logo */}
@@ -279,7 +279,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Menu Dropdown / Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-stone-800 bg-stone-900 px-4 pt-3 pb-6 space-y-3">
+        <div className="lg:hidden absolute top-full left-0 w-full shadow-2xl border-t border-stone-800 bg-stone-900 px-4 pt-3 pb-6 space-y-3 max-h-[calc(100dvh-4rem)] overflow-y-auto">
           <div className="space-y-1">
             {navLinks.map((link) => (
               <NavLink

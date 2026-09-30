@@ -1,6 +1,7 @@
 import uuid
 import secrets  
 import hashlib  
+import re
 from fastapi import APIRouter, HTTPException, status
 from backend.schemas.auth_schemas import LoginRequest, LoginResponse
 from backend.schemas.Farmer_schemas import FarmerSchema
@@ -71,7 +72,11 @@ def unified_login(credentials: LoginRequest):
         )
 
     # 2. Check if Farmer
-    farmer_query = db.collection("farmers").where("phone", "==", credentials.username_or_phone).limit(1).get()
+    if not re.fullmatch(r"\d{10}", credentials.username_or_phone):
+        raise HTTPException(
+            status_code=400,
+            detail="Phone number must be exactly 10 digits."
+        )
     
     if len(farmer_query) > 0:
         farmer_doc = farmer_query[0].to_dict()
