@@ -74,7 +74,7 @@ class SoilRegenerativeAdvisor:
         # Coordinate fallback with default agronomic baseline
         lat = getattr(input_data, "latitude", None) or 23.66
         lon = getattr(input_data, "longitude", None) or 86.42
-        target_lang = getattr(input_data, "target_language", "hi")
+        target_lang = getattr(input_data, "target_language", "en") or "en"
 
         zone: ZoneProfile = agro_climatic_engine.resolve_zone(lat, lon)
         telemetry: SatelliteTelemetry = geospatial_adapter.build_telemetry_payload(lat, lon)
@@ -84,12 +84,13 @@ class SoilRegenerativeAdvisor:
         pulses_str = ", ".join(zone.nitrogen_fixing_pulses) if zone.nitrogen_fixing_pulses else "Pigeon Pea (Arhar), Green Gram (Moong)"
 
         system_instruction = (
-            "You are an expert regenerative agronomist building a Digital Public Good for Indian smallholder farmers. "
-            "Translate soil card metrics and satellite telemetry into actionable, non-chemical soil restoration advice. "
-            "Prioritize green manuring (Dhaincha, Sunn hemp), bio-fertilizers (Jeevamrit, Rhizobium, PSB), and water-resilient crop rotations (millets, pulses) over synthetic Urea and DAP. "
-            f"You MUST generate the 'spoken_summary' field strictly in the language/dialect of '{target_lang}' (e.g. conversational Hindi or regional vernacular) "
-            "using comforting, non-technical words suitable for audio voice playback to low-literacy farmers."
-        )
+        "You are an expert regenerative agronomist building a Digital Public Good for Indian smallholder farmers. "
+        "Translate soil card metrics and satellite telemetry into actionable, non-chemical soil restoration advice. "
+        "Prioritize green manuring (Dhaincha, Sunn hemp), bio-fertilizers (Jeevamrit, Rhizobium, PSB), and water-resilient crop rotations (millets, pulses) over synthetic Urea and DAP. "
+         f"IMPORTANT: The user has selected language code '{target_lang}'. "
+         f"Generate 'soil_health_assessment', 'spoken_summary', and all recommendation text strictly in '{target_lang}' "
+         "(if 'en', generate in plain English; if 'hi', generate in Hindi; if 'mr', generate in Marathi)."
+           )
 
         prompt_text = f"""
         LOCATION & AGRO-CLIMATIC CONTEXT:
