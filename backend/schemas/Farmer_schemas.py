@@ -4,7 +4,11 @@ from typing import Optional, List
 class FarmerSchema(BaseModel):
     farmer_id: Optional[str] = Field(default=None, description="Unique ID for the farmer")
     name: str
-    phone: str
+    phone: str = Field(
+        ...,
+        pattern=r"^\d{10}$",
+        description="Exactly 10 numeric digits"
+    )
     state: str
     district: str
     language: str = "en"

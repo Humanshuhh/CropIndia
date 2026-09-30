@@ -380,5 +380,41 @@ accessDenied: string;
   weatherStatusIdle: string;
   weatherFetchButton: string;
   weatherFetchLoading: string;
+
+  historyBadgeArchives: string;
+  historyPageTitle: string;
+  historyPageSubtitle: string;
+  historyFilterAll: string;
+  historyFilterSoil: string;
+  historyFilterPathology: string;
+  historyFilterAlerts: string;
+  historyEmptyTitle: string;
+  historyEmptyBody: string;
+  historyDemoViewingLabel: string;
+  historyDemoInspectLabel: string;
+  historyRefreshBtn: string;
+  historyLoadingText: string;
+  historyErrorTitle: string;
+  historyErrorBody: string;
+  historyErrorPreviewBtn: string;
+  historyErrorSessionNote: string;
+  historyDemoNoticeTitle: string;
+  historyDemoNoticeBody: string;
+  historyRecordSummaryLabel: string;
+  historyRecordMetricsLabel: string;
+  historyEmptySoilBtn: string;
+  historyEmptyDiagnoseBtn: string;
+  historyDemoSoilTitle: string;
+  historyDemoSoilSummary: string;
+  historyDemoSoilStatus: string;
+  historyDemoSoilTagRegenerative: string;
+  historyDemoSoilTagNonChemical: string;
+  historyDemoSoilAmendmentJeevamrit: string;
+  historyDemoSoilAmendmentTrichoderma: string;
+  historyDemoSoilRotation: string;
+  historyDemoDiseaseTitle: string;
+  historyDemoDiseaseSummary: string;
+  historyDemoDiseaseConfidence: string;
+  
 }
 

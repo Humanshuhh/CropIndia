@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import {
   History as HistoryIcon,
   Layers,
@@ -19,57 +20,62 @@ import type { HistoryItem, HistoryFilter } from '../types/history.types';
 import type { NormalizedError } from '../types/api.types';
 
 // Clearly isolated demo-only records for UI/UX inspection
-const DEMO_PREVIEW_RECORDS: HistoryItem[] = [
-  {
-    id: 'demo-hist-1',
-    type: 'soil_evaluation',
-    title: 'Soil Health Assessment — Gangetic Loam',
-    summary:
-      'SOC deficient at 0.42%. Neutral pH (6.8). Prescribed fermented Jeevamrit root drench and Dhaincha green manuring.',
-    date: '10 Sep 2026, 11:20 AM',
-    status_or_confidence: 'Deficient SOC',
-    tags: ['Regenerative Plan', 'Non-Chemical'],
-    details: {
-      ph: 6.8,
-      organic_carbon: '0.42%',
-      recommended_amendments: ['Fermented Jeevamrit (200 L/acre)', 'Trichoderma Enriched FYM (100 kg/acre)'],
-      rotation: 'Kharif: Pearl Millet (Bajra) + Pigeon Pea (Arhar)',
-    },
-  },
-  {
-    id: 'demo-hist-2',
-    type: 'diagnosis',
-    title: 'Crop Disease Diagnosis — Early Leaf Spot',
-    summary:
-      'Identified fungal foliar lesions on tomato/potato foliage. Confidence HIGH (91%). Prescribed neem seed kernel spray.',
-    date: '08 Sep 2026, 09:45 AM',
-    status_or_confidence: 'Confidence: HIGH (91%)',
-    tags: ['Multimodal Leaf Pathology', 'Neem Spray'],
-    details: {
-      pathogen: 'Alternaria solani',
-      remedy: 'Neem Oil (5ml/L) + fermented buttermilk spray',
-      prevention: 'Contour drainage & canopy aeration',
-    },
-  },
-  {
-    id: 'demo-hist-3',
-    type: 'early_warning',
-    title: 'Telemetry Risk Alert — Fungal Blight Humidity Anomaly',
-    summary:
-      'Canopy saturation trigger (>90% RH for 48h). Prophylactic bio-fungicide broadcast recommended before rains.',
-    date: '05 Sep 2026, 06:00 AM',
-    status_or_confidence: 'Risk: HIGH',
-    tags: ['Satellite & Weather Fusion', 'Proactive Alert'],
-    details: {
-      trigger: '48h relative humidity elevation',
-      sentinel_index: 'NDVI 0.52',
-    },
-  },
-];
 
 export const History: React.FC = () => {
+  const { t } = useLanguage();
   const { user } = useAuth();
 
+  const DEMO_PREVIEW_RECORDS: HistoryItem[] = [
+    {
+      id: 'demo-hist-1',
+      type: 'soil_evaluation',
+      title: t('historyDemoSoilTitle'),
+      summary: t('historyDemoSoilSummary'),
+      date: '10 Sep 2026, 11:20 AM',
+      status_or_confidence: t('historyDemoSoilStatus'),
+      tags: [
+        t('historyDemoSoilTagRegenerative'),
+        t('historyDemoSoilTagNonChemical'),
+      ],
+      details: {
+        ph: 6.8,
+        organic_carbon: '0.42%',
+        recommended_amendments: [
+          t('historyDemoSoilAmendmentJeevamrit'),
+          t('historyDemoSoilAmendmentTrichoderma'),
+        ],
+        rotation: t('historyDemoSoilRotation'),
+      },
+    },
+    {
+      id: 'demo-hist-2',
+      type: 'diagnosis',
+      title: t('historyDemoDiseaseTitle'),
+      summary: t('historyDemoDiseaseSummary'),
+      date: '08 Sep 2026, 09:45 AM',
+      status_or_confidence: 'Confidence: HIGH (91%)',
+      tags: ['Multimodal Leaf Pathology', 'Neem Spray'],
+      details: {
+        pathogen: 'Alternaria solani',
+        remedy: 'Neem Oil (5ml/L) + fermented buttermilk spray',
+        prevention: 'Contour drainage & canopy aeration',
+      },
+    },
+    {
+      id: 'demo-hist-3',
+      type: 'early_warning',
+      title: 'Telemetry Risk Alert — Fungal Blight Humidity Anomaly',
+      summary:
+        'Canopy saturation trigger (>90% RH for 48h). Prophylactic bio-fungicide broadcast recommended before rains.',
+      date: '05 Sep 2026, 06:00 AM',
+      status_or_confidence: 'Risk: HIGH',
+      tags: ['Satellite & Weather Fusion', 'Proactive Alert'],
+      details: {
+        trigger: '48h relative humidity elevation',
+        sentinel_index: 'NDVI 0.52',
+      },
+    },
+  ];
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<NormalizedError | null>(null);
@@ -133,13 +139,13 @@ export const History: React.FC = () => {
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
             <HistoryIcon className="w-3.5 h-3.5" />
-            <span>Advisory Archives</span>
+            <span>{t('historyBadgeArchives')}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-stone-900 tracking-tight">
-            Diagnostic & Advisory History
+            {t('historyPageTitle')}
           </h1>
           <p className="text-stone-600 text-sm sm:text-base">
-            Timeline of past soil evaluations, crop disease diagnoses, and early warning risk alerts.
+            {t('historyPageSubtitle')}
           </p>
         </div>
 
@@ -154,7 +160,11 @@ export const History: React.FC = () => {
           }`}
         >
           <Eye className="w-4 h-4" />
-          <span>{showDemoPreview ? 'Viewing Demo Timeline Preview' : 'Inspect Demo UI Hierarchy'}</span>
+          <span>
+            {showDemoPreview
+              ? t('historyDemoViewingLabel')
+              : t('historyDemoInspectLabel')}
+          </span>
         </button>
       </div>
 
@@ -163,9 +173,9 @@ export const History: React.FC = () => {
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-950 flex items-start gap-2.5 shadow-2xs animate-fadeIn">
           <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div>
-            <span className="font-bold">UI Timeline Preview Active: </span>
+            <span className="font-bold">{t('historyDemoNoticeTitle')} </span>
             <span>
-              These sample cards illustrate the chronological timeline layout for Soil, Disease, and Alert records. No simulated backend queries are performed.
+              {t('historyDemoNoticeBody')}
             </span>
           </div>
         </div>
@@ -175,10 +185,10 @@ export const History: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-xl bg-stone-100 p-1 border border-stone-200" role="tablist">
           {[
-            { id: 'all', label: 'All Records' },
-            { id: 'soil_evaluation', label: 'Soil Health' },
-            { id: 'diagnosis', label: 'Crop Pathology' },
-            { id: 'early_warning', label: 'Risk Alerts' },
+            { id: 'all', label: t('historyFilterAll') },
+            { id: 'soil_evaluation', label: t('historyFilterSoil') },
+            { id: 'diagnosis', label: t('historyFilterPathology') },
+            { id: 'early_warning', label: t('historyFilterAlerts') },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -202,7 +212,7 @@ export const History: React.FC = () => {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 hover:text-emerald-900 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200"
         >
           <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Check Server Feed</span>
+          <span>{t('historyRefreshBtn')}</span>
         </button>
       </div>
 
@@ -211,7 +221,7 @@ export const History: React.FC = () => {
         <div className="rounded-2xl border border-stone-200 p-12 text-center bg-white space-y-3 shadow-2xs">
           <RotateCw className="w-8 h-8 animate-spin text-emerald-700 mx-auto" />
           <p className="text-sm font-semibold text-stone-800">
-            Querying advisory history archive...
+            {t('historyLoadingText')}
           </p>
         </div>
       )}
@@ -225,10 +235,10 @@ export const History: React.FC = () => {
             </span>
             <div className="space-y-1">
               <h4 className="font-bold text-sm sm:text-base text-amber-950">
-                History Retrieval Endpoints Pending Backend Deployment
+                {t('historyErrorTitle')}
               </h4>
               <p className="text-xs sm:text-sm text-amber-900/90 leading-relaxed">
-                The frontend history service boundary is prepared and ready. Backend retrieval endpoints for historical leaf diagnoses and soil evaluations have not yet been deployed by the backend team.
+                {t('historyErrorBody')}
               </p>
             </div>
           </div>
@@ -238,10 +248,10 @@ export const History: React.FC = () => {
               onClick={() => setShowDemoPreview(true)}
               className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-semibold text-xs transition-colors shadow-2xs"
             >
-              Preview Timeline UI Structure & Details
+              {t('historyErrorPreviewBtn')}
             </button>
             <span className="text-xs text-amber-800 italic">
-              Live evaluations run on Khet Swasthya & Fasal Rog Pehchan are processed live in session memory.
+              {t('historyErrorSessionNote')}
             </span>
           </div>
         </div>
@@ -254,9 +264,11 @@ export const History: React.FC = () => {
             <FileText className="w-7 h-7" />
           </div>
           <div className="space-y-1 max-w-sm mx-auto">
-            <h4 className="font-bold text-stone-900 text-base">No Historical Records Yet</h4>
+            <h4 className="font-bold text-stone-900 text-base">
+              {t('historyEmptyTitle')}
+            </h4>
             <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-              You haven't run any evaluations yet or the cloud history archive is currently empty.
+              {t('historyEmptyBody')}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -264,13 +276,13 @@ export const History: React.FC = () => {
               to="/khet-swasthya"
               className="px-4 py-2 rounded-xl bg-emerald-700 text-white font-semibold text-xs hover:bg-emerald-800 transition-colors shadow-2xs"
             >
-              Run Soil Evaluation
+              {t('historyEmptySoilBtn')}
             </Link>
             <Link
               to="/fasal-rog-pehchan"
               className="px-4 py-2 rounded-xl border border-stone-300 text-stone-700 font-semibold text-xs hover:bg-stone-50 transition-colors"
             >
-              Diagnose Crop Leaf
+              {t('historyEmptyDiagnoseBtn')}
             </Link>
           </div>
         </div>
@@ -334,7 +346,7 @@ export const History: React.FC = () => {
                   <div className="px-5 pb-5 pt-3 border-t border-stone-100 bg-stone-50/60 space-y-3 text-xs sm:text-sm">
                     <div className="space-y-1">
                       <span className="font-bold uppercase tracking-wider text-[11px] text-stone-500 block">
-                        Record Summary:
+                        {t('historyRecordSummaryLabel')}
                       </span>
                       <p className="text-stone-700 leading-relaxed">
                         {item.summary}
@@ -359,7 +371,7 @@ export const History: React.FC = () => {
                     {item.details && (
                       <div className="p-4 rounded-xl bg-white border border-stone-200 space-y-2 mt-2">
                         <span className="font-bold uppercase tracking-wider text-[10px] text-stone-400 block">
-                          Recorded Metrics:
+                          {t('historyRecordMetricsLabel')}
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                           {Object.entries(item.details).map(([k, v]) => (
