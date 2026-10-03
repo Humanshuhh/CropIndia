@@ -327,7 +327,56 @@ The backend exposes a RESTful API designed for seamless integration with the Rea
 > 💡 **Interactive Documentation:** Because the backend is built with **FastAPI**, you can explore all endpoints, view request/response schemas, and test the API directly in your browser by visiting the auto-generated Swagger UI at: 
 > **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
 
+
 ---
+
+## 🚀 Deployment Guide
+
+CropIndia utilizes a decoupled deployment architecture: the **FastAPI backend** is hosted on **Render**  and the **React + Vite frontend** is deployed on **Vercel**.
+
+---
+
+### Option A: Render (Backend) & Vercel (Frontend) [Recommended]
+
+#### 1. Backend on Render (Web Service)
+1. Go to the [Render Dashboard](https://dashboard.render.com/) and click **New +** $\rightarrow$ **Web Service**.
+2. Connect your GitHub repository (`CropIndia`)[cite: 2].
+3. Configure the service settings:
+   - **Name**: `cropindia-backend`
+   - **Environment**: `Python 3`
+   - **Root Directory**: `.` (leave empty or set to root)
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+4. Add Environment Variables in the **Environment** tab:
+   - `GEMINI_API_KEY`: Your Google AI Studio API key[cite: 2]
+   - `GOOGLE_CLOUD_PROJECT`: `cropindia-prod`[cite: 2]
+   - `FIREBASE_KEY_BASE64`: Base64 string of your `firebase-key.json`[cite: 2]
+   - `SECRET_KEY`: Random 32-byte hex string[cite: 2]
+5. Click **Deploy Web Service** and copy your generated URL (e.g., `https://cropindia-backend.onrender.com`).
+
+#### 2. Frontend on Vercel
+1. Go to [Vercel Dashboard](https://vercel.com/) and click **Add New** $\rightarrow$ **Project**.
+2. Import your GitHub repository.
+3. In project settings:
+   - **Framework Preset**: `Vite`[cite: 2]
+   - **Root Directory**: `frontend`[cite: 2]
+4. Ensure `frontend/vercel.json` exists to proxy API requests and prevent CORS issues:
+   ```json
+   {
+     "rewrites": [
+       {
+         "source": "/api/:path*",
+         "destination": "https://<YOUR-RENDER-BACKEND-URL>[.onrender.com/api/:path](https://.onrender.com/api/:path)*"
+       },
+       {
+         "source": "/(.*)",
+         "destination": "/index.html"
+       }
+     ]
+   }
+   ```
+
+   ---
 
 ## 🌐 Digital Public Good & BRICS Alignment
 Kisan Sahayak is designed to scale across state borders and emerging economies:
